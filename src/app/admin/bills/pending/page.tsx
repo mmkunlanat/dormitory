@@ -5,7 +5,7 @@ import styled from "styled-components";
 
 interface PendingBill {
   id: string;
-  user: string;
+  user: { name: string };
   room: string;
   month: string;
   amount: number;
@@ -104,38 +104,41 @@ const NoData = styled.p`
 
 export default function PendingBillsPage() {
   const [pending, setPending] = useState<PendingBill[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  async function fetchPendingBills() {
+    try {
+      const res = await fetch("/api/admin/bills/pending");
+      const data = await res.json();
+      setPending(data);
+    } catch (error) {
+      console.error("Failed to fetch bills", error);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    // mock data (จริงให้ fetch จาก backend)
-    setPending([
-      {
-        id: "1001",
-        user: "สมชาย ใจดี",
-        room: "A101",
-        month: "2025-01",
-        amount: 1550,
-        slipUrl: "/uploads/slip1.jpg",
-        status: "pending",
-      },
-      {
-        id: "1002",
-        user: "ปรียา รุ่งเรือง",
-        room: "B205",
-        month: "2025-01",
-        amount: 980,
-        slipUrl: "/uploads/slip2.jpg",
-        status: "pending",
-      },
-    ]);
+    fetchPendingBills();
   }, []);
 
-  function approveBill(id: string) {
-    alert("อนุมัติบิล #" + id);
+  async function handleAction(id: string, action: "approve" | "reject") {
+    try {
+      const res = await fetch("/api/admin/bills/pending", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchPendingBills(); // refresh list
+      }
+    } catch (error) {
+      console.error("Failed to update bill", error);
+    }
   }
 
-  function rejectBill(id: string) {
-    alert("ปฏิเสธบิล #" + id);
-  }
+  if (loading) return <Container>กำลังโหลด...</Container>;
 
   return (
     <Container>
@@ -147,7 +150,7 @@ export default function PendingBillsPage() {
             <Row>
               <div>
                 <BillTitle>บิล #{bill.id}</BillTitle>
-                <p>ผู้ใช้: {bill.user}</p>
+                <p>ผู้ใช้: {bill.user.name}</p>
                 <p>ห้อง: {bill.room}</p>
                 <p>เดือน: {bill.month}</p>
                 <p>ยอดชำระ: {bill.amount} บาท</p>
@@ -155,8 +158,8 @@ export default function PendingBillsPage() {
               {bill.slipUrl && <SlipImage src={bill.slipUrl} alt="slip" />}
             </Row>
             <ButtonBox>
-              <ApproveBtn onClick={() => approveBill(bill.id)}>✔ อนุมัติ</ApproveBtn>
-              <RejectBtn onClick={() => rejectBill(bill.id)}>✖ ปฏิเสธ</RejectBtn>
+              <ApproveBtn onClick={() => handleAction(bill.id, "approve")}>✔ อนุมัติ</ApproveBtn>
+              <RejectBtn onClick={() => handleAction(bill.id, "reject")}>✖ ปฏิเสธ</RejectBtn>
             </ButtonBox>
           </Card>
         ))}
