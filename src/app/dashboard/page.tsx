@@ -3,6 +3,7 @@ import React from "react";
 import styled from "styled-components";
 import { useRouter } from "next/navigation";
 
+// Wrapper ของหน้า
 const PageWrap = styled.div`
   min-height: 100vh;
   background: #f4f6f9;
@@ -12,6 +13,7 @@ const PageWrap = styled.div`
   gap: 20px;
 `;
 
+// Header
 const Header = styled.div`
   display: flex;
   justify-content: space-between;
@@ -23,12 +25,14 @@ const Title = styled.h1`
   color: #0b2545;
 `;
 
+// Grid ของบัตรบิล
 const CardContainer = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit,minmax(250px,1fr));
   gap: 16px;
 `;
 
+// Card บิล
 const Card = styled.div`
   background: white;
   padding: 20px;
@@ -39,6 +43,7 @@ const Card = styled.div`
   gap: 10px;
 `;
 
+// ปุ่ม
 const Button = styled.button`
   padding: 10px 14px;
   border-radius: 12px;
@@ -53,15 +58,17 @@ const Button = styled.button`
   }
 `;
 
+// Status ของบิล: ไม่ส่ง paid ลง DOM
 const Status = styled.span<{ paid?: boolean }>`
   font-weight: 600;
   color: ${(p) => (p.paid ? "#16a34a" : "#b91c1c")};
 `;
 
+// หน้า Dashboard
 export default function DashboardPage() {
   const router = useRouter();
 
-  // ตัวอย่างข้อมูลบิล (จริงๆ ต้อง fetch จาก API)
+  // ตัวอย่างข้อมูลบิล (จริงๆ fetch จาก API)
   const bills = [
     { month: "พฤศจิกายน 2025", room: "101", rent: 5000, water: 200, electricity: 300, paid: false },
     { month: "ตุลาคม 2025", room: "101", rent: 5000, water: 180, electricity: 250, paid: true },
@@ -82,8 +89,13 @@ export default function DashboardPage() {
             <p>ค่าน้ำ: {bill.water} บาท</p>
             <p>ค่าไฟ: {bill.electricity} บาท</p>
             <p>รวมทั้งหมด: {bill.rent + bill.water + bill.electricity} บาท</p>
+            {/* แก้ปัญหา paid prop */}
             <Status paid={bill.paid}>{bill.paid ? "ชำระแล้ว" : "ยังไม่ชำระ"}</Status>
-            {!bill.paid && <Button onClick={() => router.push('/payment/upload')}>อัปโหลดสลิป</Button>}
+            {!bill.paid && (
+              <Button onClick={() => router.push('/payment/upload')}>
+                อัปโหลดสลิป
+              </Button>
+            )}
           </Card>
         ))}
       </CardContainer>

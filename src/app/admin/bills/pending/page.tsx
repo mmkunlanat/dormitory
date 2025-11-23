@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import styled from "styled-components";
 
 interface PendingBill {
   id: string;
@@ -11,6 +12,95 @@ interface PendingBill {
   slipUrl?: string;
   status: string;
 }
+
+const Container = styled.div`
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 20px;
+  font-family: sans-serif;
+`;
+
+const Title = styled.h1`
+  font-size: 28px;
+  font-weight: bold;
+  margin-bottom: 25px;
+`;
+
+const List = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+`;
+
+const Card = styled.div`
+  padding: 20px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const Row = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  align-items: center;
+`;
+
+const BillTitle = styled.h3`
+  margin: 0;
+  margin-bottom: 8px;
+  font-size: 20px;
+`;
+
+const SlipImage = styled.img`
+  width: 140px;
+  height: 180px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid #ccc;
+`;
+
+const ButtonBox = styled.div`
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+`;
+
+const ApproveBtn = styled.button`
+  flex: 1;
+  padding: 10px;
+  font-size: 16px;
+  background: #2ecc71;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  &:hover {
+    opacity: 0.9;
+  }
+`;
+
+const RejectBtn = styled.button`
+  flex: 1;
+  padding: 10px;
+  font-size: 16px;
+  background: #e74c3c;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  &:hover {
+    opacity: 0.9;
+  }
+`;
+
+const NoData = styled.p`
+  font-size: 16px;
+  color: #555;
+`;
 
 export default function PendingBillsPage() {
   const [pending, setPending] = useState<PendingBill[]>([]);
@@ -48,110 +138,29 @@ export default function PendingBillsPage() {
   }
 
   return (
-    <div style={styles.container}>
-      <h1 style={styles.title}>บิลที่รอตรวจสอบ</h1>
-
-      <div style={styles.list}>
+    <Container>
+      <Title>บิลที่รอตรวจสอบ</Title>
+      <List>
+        {pending.length === 0 && <NoData>ไม่มีรายการที่รอตรวจสอบ</NoData>}
         {pending.map((bill) => (
-          <div key={bill.id} style={styles.card}>
-            <div style={styles.row}>
+          <Card key={bill.id}>
+            <Row>
               <div>
-                <h3 style={styles.billTitle}>บิล #{bill.id}</h3>
+                <BillTitle>บิล #{bill.id}</BillTitle>
                 <p>ผู้ใช้: {bill.user}</p>
                 <p>ห้อง: {bill.room}</p>
                 <p>เดือน: {bill.month}</p>
                 <p>ยอดชำระ: {bill.amount} บาท</p>
               </div>
-
-              {bill.slipUrl && (
-                <img
-                  src={bill.slipUrl}
-                  alt="slip"
-                  style={styles.slip}
-                />
-              )}
-            </div>
-
-            <div style={styles.buttonBox}>
-              <button style={styles.approveBtn} onClick={() => approveBill(bill.id)}>
-                ✔ อนุมัติ
-              </button>
-              <button style={styles.rejectBtn} onClick={() => rejectBill(bill.id)}>
-                ✖ ปฏิเสธ
-              </button>
-            </div>
-          </div>
+              {bill.slipUrl && <SlipImage src={bill.slipUrl} alt="slip" />}
+            </Row>
+            <ButtonBox>
+              <ApproveBtn onClick={() => approveBill(bill.id)}>✔ อนุมัติ</ApproveBtn>
+              <RejectBtn onClick={() => rejectBill(bill.id)}>✖ ปฏิเสธ</RejectBtn>
+            </ButtonBox>
+          </Card>
         ))}
-
-        {pending.length === 0 && <p>ไม่มีรายการที่รอตรวจสอบ</p>}
-      </div>
-    </div>
+      </List>
+    </Container>
   );
 }
-
-const styles = {
-  container: {
-    maxWidth: "900px",
-    margin: "40px auto",
-    padding: "20px",
-    fontFamily: "sans-serif",
-  },
-  title: {
-    fontSize: "28px",
-    fontWeight: "bold",
-    marginBottom: "25px",
-  },
-  list: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "20px",
-  },
-  card: {
-    padding: "20px",
-    background: "#fff",
-    borderRadius: "12px",
-    boxShadow: "0 4px 14px rgba(0,0,0,0.1)",
-  },
-  row: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: "15px",
-  },
-  billTitle: {
-    margin: 0,
-    marginBottom: "8px",
-    fontSize: "20px",
-  },
-  slip: {
-    width: "140px",
-    height: "180px",
-    borderRadius: "10px",
-    objectFit: "cover",
-    border: "1px solid #ccc",
-  },
-  buttonBox: {
-    marginTop: "15px",
-    display: "flex",
-    gap: "10px",
-  },
-  approveBtn: {
-    flex: 1,
-    padding: "10px",
-    fontSize: "16px",
-    background: "#2ecc71",
-    color: "#fff",
-    border: "none",
-    borderRadius: "8px",
-    cursor: "pointer",
-  },
-  rejectBtn: {
-    flex: 1,
-    padding: "10px",
-    fontSize: "16px",
-    background: "#e74c3c",
-    color: "#fff",
-    border: "none",
-    borderRadius: "8px",
-    cursor: "pointer",
-  },
-};
