@@ -1,84 +1,106 @@
 "use client";
-
-import React from "react";
 import styled from "styled-components";
+import { useState } from "react";
+
+// ตัวอย่างข้อมูล user mock (รอเชื่อมกับ DB / API)
+const mockUser = {
+  name: "กุลนาถ รัตนวรรณ",
+  email: "kunlanat@example.com",
+  phone: "081-234-5678",
+  room: "ห้อง A101",
+  bankAccount: {
+    bankName: "ธนาคารกรุงเทพ",
+    accountNo: "123-4-56789-0",
+    accountName: "กุลนาถ รัตนวรรณ"
+  }
+};
 
 const Container = styled.div`
   min-height: 100vh;
-  padding: 40px;
   background: #f4f6f9;
-  font-family: Arial, sans-serif;
-`;
-
-const Header = styled.div`
-  text-align: center;
-  margin-bottom: 40px;
-`;
-
-const Title = styled.h1`
-  font-size: 28px;
-  font-weight: 700;
-  color: #333;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 60px 20px;
 `;
 
 const Card = styled.div`
-  max-width: 600px;
-  margin: 0 auto 20px auto;
   background: #fff;
   border-radius: 20px;
-  padding: 24px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  box-shadow: 0px 12px 24px rgba(0,0,0,0.08);
+  padding: 32px;
+  width: 420px;
+`;
+
+const Title = styled.h2`
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 24px;
 `;
 
 const Field = styled.div`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 `;
 
-const FieldLabel = styled.div`
-  font-weight: 600;
-  color: #555;
+const Label = styled.div`
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 4px;
 `;
 
-const FieldValue = styled.div`
+const Value = styled.div`
+  font-size: 16px;
   font-weight: 500;
-  color: #111;
 `;
 
 const EditButton = styled.button`
-  margin-top: 20px;
+  margin-top: 24px;
   width: 100%;
   padding: 12px;
-  border: none;
   border-radius: 12px;
-  background: #4a90e2;
-  color: white;
+  background-color: #4f46e5;
+  color: #fff;
   font-weight: 600;
   cursor: pointer;
-  &:hover { background: #357abf; }
+  border: none;
+  transition: all 0.2s;
+  &:hover {
+    background-color: #3730a3;
+  }
 `;
 
 export default function ProfilePage() {
-  // ตัวอย่างข้อมูลผู้เช่า (จริง ๆ ต่อ Firebase / DB)
-  const user = {
-    fullname: "Mint Kunlanat",
-    email: "stu6612732138@sskru.ac.th",
-    room: "101",
-    phone: "0812345678",
-  };
+  const [user, setUser] = useState(mockUser);
 
   return (
     <Container>
-      <Header>
-        <Title>ข้อมูลผู้เช่า</Title>
-      </Header>
-
       <Card>
-        <Field><FieldLabel>ชื่อ-นามสกุล</FieldLabel><FieldValue>{user.fullname}</FieldValue></Field>
-        <Field><FieldLabel>อีเมล</FieldLabel><FieldValue>{user.email}</FieldValue></Field>
-        <Field><FieldLabel>ห้องพัก</FieldLabel><FieldValue>{user.room}</FieldValue></Field>
-        <Field><FieldLabel>เบอร์โทร</FieldLabel><FieldValue>{user.phone}</FieldValue></Field>
+        <Title>ข้อมูลส่วนตัว</Title>
+
+        <Field>
+          <Label>ชื่อ-นามสกุล</Label>
+          <Value>{user.name}</Value>
+        </Field>
+
+        <Field>
+          <Label>อีเมล</Label>
+          <Value>{user.email}</Value>
+        </Field>
+
+        <Field>
+          <Label>เบอร์โทร</Label>
+          <Value>{user.phone}</Value>
+        </Field>
+
+        <Field>
+          <Label>ห้อง</Label>
+          <Value>{user.room}</Value>
+        </Field>
+
+        <Field>
+          <Label>บัญชีธนาคาร</Label>
+          <Value>{user.bankAccount.bankName} | {user.bankAccount.accountNo} | {user.bankAccount.accountName}</Value>
+        </Field>
 
         <EditButton>แก้ไขข้อมูล</EditButton>
       </Card>
