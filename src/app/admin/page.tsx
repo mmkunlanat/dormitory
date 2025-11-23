@@ -1,167 +1,102 @@
 "use client";
+
 import React from "react";
 import styled from "styled-components";
 import { useRouter } from "next/navigation";
 
-const PageWrap = styled.div`
-  min-height: 100vh;
-  background: #f4f6f9;
-  padding: 24px;
+const Container = styled.div`
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 20px;
+  font-family: sans-serif;
+`;
+
+const Header = styled.div`
   display: flex;
-  flex-direction: column;
-  gap: 20px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
 `;
 
 const Title = styled.h1`
-  font-size: 26px;
-  font-weight: 700;
+  font-size: 28px;
   color: #0b2545;
 `;
 
-const Grid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 20px;
-`;
-
-const StatCard = styled.div`
-  background: white;
-  padding: 20px;
-  border-radius: 16px;
-  box-shadow: 0 12px 24px rgba(12, 24, 48, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-`;
-
-const Number = styled.span`
-  font-size: 30px;
-  font-weight: 700;
-  color: #2563eb;
-`;
-
-const Label = styled.span`
-  font-size: 16px;
-  color: #1f2937;
-  font-weight: 500;
-`;
-
 const Button = styled.button`
-  padding: 12px 18px;
-  background: linear-gradient(90deg, #2563eb, #4f46e5);
-  border: none;
+  padding: 10px 14px;
   border-radius: 12px;
+  border: none;
+  background: linear-gradient(90deg, #2563eb, #4f46e5);
   color: white;
   font-weight: 600;
   cursor: pointer;
-  transition: 0.2s;
-  margin-top: 10px;
+  transition: 0.2s ease;
+
   &:hover {
     opacity: 0.9;
   }
 `;
 
-const Section = styled.div`
-  margin-top: 20px;
-  background: white;
-  padding: 24px;
+const CardContainer = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+`;
+
+const Card = styled.div`
+  padding: 20px;
+  background: #fff;
   border-radius: 16px;
-  box-shadow: 0 12px 24px rgba(12, 24, 48, 0.08);
-`;
-
-const SectionTitle = styled.h2`
-  font-size: 20px;
-  font-weight: 700;
-  color: #0b2545;
-  margin-bottom: 16px;
-`;
-
-const List = styled.ul`
-  list-style: none;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+  cursor: pointer;
+  transition: 0.2s ease;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+  }
 `;
 
-const ListItem = styled.li`
-  background: #eef2ff;
-  padding: 14px;
-  border-radius: 12px;
-  border: 1px solid #c7d2fe;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+const CardTitle = styled.h2`
+  font-size: 20px;
+  margin: 0;
+  color: #0b2545;
 `;
 
-export default function AdminDashboard() {
+const CardDesc = styled.p`
+  font-size: 16px;
+  color: #555;
+`;
+
+export default function AdminDashboardPage() {
   const router = useRouter();
 
-  // mock data (ภายหลัง fetch จาก backend)
-  const stats = {
-    users: 14,
-    totalBills: 14,
-    unpaidBills: 3,
-    paidBills: 11,
-  };
-
-  const recent = [
-    { room: "101", name: "สมชาย", status: "ยังไม่จ่าย", amount: 5230 },
-    { room: "202", name: "มานี", status: "ชำระแล้ว", amount: 4700 },
-    { room: "303", name: "บุญมี", status: "ยังไม่จ่าย", amount: 5100 },
+  // ตัวอย่างเมนู admin
+  const cards = [
+    { title: "จัดการผู้ใช้", desc: "ดู/แก้ไขข้อมูลผู้เช่า", route: "/admin/users" },
+    { title: "บิลรอตรวจสอบ", desc: "อนุมัติหรือปฏิเสธบิล", route: "/admin/bills/pending" },
+    { title: "สร้างบิลใหม่", desc: "เพิ่มบิลค่าน้ำ ค่าไฟ และค่าห้อง", route: "/admin/bills/create" },
   ];
 
   return (
-    <PageWrap>
-      <Title>Admin Dashboard (เจ้าของหอ)</Title>
+    <Container>
+      <Header>
+        <Title>Admin Dashboard</Title>
+        <Button onClick={() => router.push("/login")}>ออกจากระบบ</Button>
+      </Header>
 
-      <Grid>
-        <StatCard>
-          <Number>{stats.users}</Number>
-          <Label>ผู้เช่าทั้งหมด</Label>
-        </StatCard>
-
-        <StatCard>
-          <Number>{stats.totalBills}</Number>
-          <Label>บิลเดือนนี้ทั้งหมด</Label>
-        </StatCard>
-
-        <StatCard>
-          <Number>{stats.unpaidBills}</Number>
-          <Label style={{ color: "#b91c1c" }}>ยังไม่ชำระ</Label>
-        </StatCard>
-
-        <StatCard>
-          <Number>{stats.paidBills}</Number>
-          <Label style={{ color: "#16a34a" }}>ชำระแล้ว</Label>
-        </StatCard>
-      </Grid>
-
-      <Button onClick={() => router.push("/admin/users")}>
-        จัดการผู้เช่า
-      </Button>
-      <Button onClick={() => router.push("/admin/bills")}>
-        จัดการบิลทั้งหมด
-      </Button>
-
-      <Section>
-        <SectionTitle>การชำระเงินล่าสุด</SectionTitle>
-        <List>
-          {recent.map((item, i) => (
-            <ListItem key={i}>
-              <span>
-                ห้อง {item.room} - {item.name}
-              </span>
-              <strong
-                style={{
-                  color: item.status === "ชำระแล้ว" ? "#16a34a" : "#b91c1c",
-                }}
-              >
-                {item.status} ({item.amount} บาท)
-              </strong>
-            </ListItem>
-          ))}
-        </List>
-      </Section>
-    </PageWrap>
+      <CardContainer>
+        {cards.map((card, index) => (
+          <Card key={index} onClick={() => router.push(card.route)}>
+            <CardTitle>{card.title}</CardTitle>
+            <CardDesc>{card.desc}</CardDesc>
+          </Card>
+        ))}
+      </CardContainer>
+    </Container>
   );
 }

@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // หรือ "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int          @id @default(autoincrement())
+  email        String       @unique
+  name         String?
+  phone        String?
+  room         String?
+  role         Role         @default(TENANT) // TENANT | ADMIN
+  createdAt    DateTime     @default(now())
+  bankAccount  BankAccount?
+  bills        Bill[]       @relation("UserBills")
+  payments     Payment[]    @relation("UserPayments")
+  sessions     Session[]    // next-auth
+}
+
+model BankAccount {
+  id         Int    @id @default(autoincrement())
+  userId     Int    @unique
+  bankName   String
+  accountNo  String
+  accountName String
+  user       User   @relation(fields: [userId], references: [id])
+}
+
+model Bill {
+  id         Int       @id @default(autoincrement())
+  userId     Int
+  month      String    // "2025-11" หรือเก็บ DateTime เป็น startOfMonth
+  rent       Int
+  water      Int
+  electric   Int
+  total      Int
+  dueDate    DateTime?
+  status     BillStatus @default(PENDING) // PENDING | UPLOADED | CONFIRMED | REJECTED
+  slipUrl    String?   // ลิงก์รูปสลิป
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  user       User      @relation(fields: [userId], references: [id])
+  payment    Payment?
+}
+
+model Payment {
+  id          Int       @id @default(autoincrement())
+  billId      Int
+  userId      Int
+  amount      Int
+  fromBank    String?
+  toBank      String?
+  transferAt   DateTime?
+  ocrText     String?    // ผล OCR ดิบ
+  status      PaymentStatus @default(PENDING) // PENDING | VERIFIED | REJECTED
+  createdAt   DateTime  @default(now())
+  bill        Bill      @relation(fields: [billId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
+}
+
+enum Role {
+  TENANT
+  ADMIN
+}
+
+enum BillStatus {
+  PENDING
+  UPLOADED
+  CONFIRMED
+  REJECTED
+}
+
+enum PaymentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}

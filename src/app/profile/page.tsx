@@ -1,109 +1,110 @@
 "use client";
-import styled from "styled-components";
-import { useState } from "react";
 
-// ตัวอย่างข้อมูล user mock (รอเชื่อมกับ DB / API)
-const mockUser = {
-  name: "กุลนาถ รัตนวรรณ",
-  email: "kunlanat@example.com",
-  phone: "081-234-5678",
-  room: "ห้อง A101",
-  bankAccount: {
-    bankName: "ธนาคารกรุงเทพ",
-    accountNo: "123-4-56789-0",
-    accountName: "กุลนาถ รัตนวรรณ"
-  }
-};
+import React, { useState } from "react";
+import styled from "styled-components";
 
 const Container = styled.div`
-  min-height: 100vh;
-  background: #f4f6f9;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 60px 20px;
-`;
-
-const Card = styled.div`
+  max-width: 600px;
+  margin: 40px auto;
+  padding: 20px;
   background: #fff;
-  border-radius: 20px;
-  box-shadow: 0px 12px 24px rgba(0,0,0,0.08);
-  padding: 32px;
-  width: 420px;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  font-family: sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 `;
 
-const Title = styled.h2`
-  font-size: 24px;
-  font-weight: 700;
-  margin-bottom: 24px;
+const Title = styled.h1`
+  font-size: 26px;
+  color: #0b2545;
 `;
 
-const Field = styled.div`
-  margin-bottom: 16px;
+const FormGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 `;
 
-const Label = styled.div`
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 4px;
+const Label = styled.label`
+  font-weight: 600;
 `;
 
-const Value = styled.div`
-  font-size: 16px;
-  font-weight: 500;
-`;
-
-const EditButton = styled.button`
-  margin-top: 24px;
-  width: 100%;
-  padding: 12px;
+const Input = styled.input`
+  padding: 10px;
   border-radius: 12px;
-  background-color: #4f46e5;
-  color: #fff;
+  border: 1px solid #ccc;
+  font-size: 16px;
+`;
+
+const Button = styled.button`
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(90deg, #2563eb, #4f46e5);
+  color: white;
   font-weight: 600;
   cursor: pointer;
-  border: none;
-  transition: all 0.2s;
+  transition: 0.2s ease;
   &:hover {
-    background-color: #3730a3;
+    opacity: 0.9;
   }
+`;
+
+const Message = styled.p`
+  font-size: 16px;
+  color: #16a34a;
 `;
 
 export default function ProfilePage() {
-  const [user, setUser] = useState(mockUser);
+  // Mock user data
+  const [user, setUser] = useState({
+    name: "สมชาย ใจดี",
+    email: "somchai@example.com",
+    phone: "0812345678",
+    room: "101",
+  });
+
+  const [message, setMessage] = useState("");
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setUser((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSave = () => {
+    // TODO: save to API
+    setMessage("บันทึกข้อมูลเรียบร้อยแล้ว");
+  };
 
   return (
     <Container>
-      <Card>
-        <Title>ข้อมูลส่วนตัว</Title>
+      <Title>โปรไฟล์ผู้ใช้</Title>
 
-        <Field>
-          <Label>ชื่อ-นามสกุล</Label>
-          <Value>{user.name}</Value>
-        </Field>
+      <FormGroup>
+        <Label>ชื่อ-นามสกุล</Label>
+        <Input name="name" value={user.name} onChange={handleChange} />
+      </FormGroup>
 
-        <Field>
-          <Label>อีเมล</Label>
-          <Value>{user.email}</Value>
-        </Field>
+      <FormGroup>
+        <Label>Email</Label>
+        <Input name="email" value={user.email} onChange={handleChange} />
+      </FormGroup>
 
-        <Field>
-          <Label>เบอร์โทร</Label>
-          <Value>{user.phone}</Value>
-        </Field>
+      <FormGroup>
+        <Label>เบอร์โทร</Label>
+        <Input name="phone" value={user.phone} onChange={handleChange} />
+      </FormGroup>
 
-        <Field>
-          <Label>ห้อง</Label>
-          <Value>{user.room}</Value>
-        </Field>
+      <FormGroup>
+        <Label>ห้อง</Label>
+        <Input name="room" value={user.room} onChange={handleChange} />
+      </FormGroup>
 
-        <Field>
-          <Label>บัญชีธนาคาร</Label>
-          <Value>{user.bankAccount.bankName} | {user.bankAccount.accountNo} | {user.bankAccount.accountName}</Value>
-        </Field>
+      <Button onClick={handleSave}>บันทึกข้อมูล</Button>
 
-        <EditButton>แก้ไขข้อมูล</EditButton>
-      </Card>
+      {message && <Message>{message}</Message>}
     </Container>
   );
 }
