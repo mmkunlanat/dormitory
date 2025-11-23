@@ -1,14 +1,16 @@
-.page {
+:root {
   --background: #fafafa;
   --foreground: #fff;
 
-  --text-primary: #000;
-  --text-secondary: #666;
+  --text-primary: #0b2545;
+  --text-secondary: #566674;
 
   --button-primary-hover: #383838;
   --button-secondary-hover: #f2f2f2;
   --button-secondary-border: #ebebeb;
+}
 
+.page {
   display: flex;
   min-height: 100vh;
   align-items: center;
@@ -93,7 +95,6 @@ a.secondary {
   border-color: var(--button-secondary-border);
 }
 
-/* Enable hover only on non-touch devices */
 @media (hover: hover) and (pointer: fine) {
   a.primary:hover {
     background: var(--button-primary-hover);
@@ -128,8 +129,8 @@ a.secondary {
   }
 
   .page {
-    --background: #000;
-    --foreground: #000;
+    --background: #0a0a0a;
+    --foreground: #171717;
 
     --text-primary: #ededed;
     --text-secondary: #999;
