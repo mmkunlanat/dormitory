@@ -1,12 +1,18 @@
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f4f6f9;
+  --foreground: #0b2545;
+  --primary: #2563eb;
+  --secondary: #4f46e5;
+  --error: #b00020;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --primary: #2563eb;
+    --secondary: #4f46e5;
+    --error: #ff4d4f;
   }
 }
 
@@ -14,6 +20,8 @@ html,
 body {
   max-width: 100vw;
   overflow-x: hidden;
+  margin: 0;
+  padding: 0;
 }
 
 body {
@@ -31,8 +39,12 @@ body {
 }
 
 a {
-  color: inherit;
+  color: var(--primary);
   text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
 }
 
 @media (prefers-color-scheme: dark) {
