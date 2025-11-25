@@ -1,8 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useRouter } from "next/navigation";
+
+interface User {
+  id: number;
+  name: string;
+  room: string;
+}
 
 const Container = styled.div`
   min-height: 100vh;
@@ -67,27 +73,26 @@ const Button = styled.button`
   }
 `;
 
-interface User {
-  id: number;
-  name: string;
-  room: string;
-}
-
 export default function CreateBillPage() {
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
-  const [userId, setUserId] = useState("");
+  const [userId, setUserId] = useState<number | null>(null);
   const [month, setMonth] = useState("");
   const [rent, setRent] = useState("");
   const [water, setWater] = useState("");
   const [electric, setElectric] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // ดึงรายชื่อผู้เช่า
   useEffect(() => {
     async function fetchUsers() {
-      const res = await fetch("/api/admin/users"); // API ของผู้เช่า
-      const data = await res.json();
-      setUsers(data);
+      try {
+        const res = await fetch("/api/admin/users");
+        const data = await res.json();
+        setUsers(data);
+      } catch (err) {
+        console.error(err);
+      }
     }
     fetchUsers();
   }, []);
@@ -98,12 +103,13 @@ export default function CreateBillPage() {
     }
 
     setLoading(true);
+
     try {
       const res = await fetch("/api/admin/bills/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: Number(userId),
+          userId,
           month,
           rent: Number(rent),
           water: Number(water),
@@ -127,11 +133,14 @@ export default function CreateBillPage() {
     <Container>
       <Title>สร้างบิลใหม่</Title>
       <FormCard>
-        <Select value={userId} onChange={(e) => setUserId(e.target.value)}>
+        <Select
+          value={userId ?? ""}
+          onChange={(e) => setUserId(Number(e.target.value))}
+        >
           <option value="">-- เลือกผู้เช่า --</option>
           {users.map((user) => (
             <option key={user.id} value={user.id}>
-              {user.name} ({user.room})
+              {user.name} (ห้อง {user.room})
             </option>
           ))}
         </Select>

@@ -1,30 +1,51 @@
+// app/api/admin/bills/create/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma"; // import Prisma Client ของคุณ
+import prisma from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { room, month, rent, water, electric } = body;
+    const data = await req.json();
+    const { userId, month, rent, water, electric } = data;
 
-    if (!room || !month || rent == null || water == null || electric == null) {
-      return NextResponse.json({ error: "กรุณากรอกข้อมูลครบถ้วน" }, { status: 400 });
+    // ตรวจสอบข้อมูลครบ
+    if (!userId || !month || rent == null || water == null || electric == null) {
+      return NextResponse.json(
+        { error: "กรุณากรอกข้อมูลครบทุกช่อง" },
+        { status: 400 }
+      );
     }
 
-    // สร้างบิลใหม่
-    const newBill = await prisma.bill.create({
+    // ตรวจสอบว่าผู้เช่ามีจริง
+    const user = await prisma.user.findUnique({ where: { id: Number(userId) } });
+    if (!user) {
+      return NextResponse.json(
+        { error: "ไม่พบผู้เช่านี้" },
+        { status: 404 }
+      );
+    }
+
+    // คำนวณรวมทั้งหมด
+    const total = Number(rent) + Number(water) + Number(electric);
+
+    // สร้างบิล
+    const bill = await prisma.bill.create({
       data: {
-        room,
+        userId: Number(userId),
         month,
-        rent,
-        water,
-        electricity: electric,
-        paid: false, // เริ่มต้นเป็นยังไม่ชำระ
+        rent: Number(rent),
+        water: Number(water),
+        electric: Number(electric),
+        total,
+        status: "PENDING",
       },
     });
 
-    return NextResponse.json(newBill);
+    return NextResponse.json(bill, { status: 201 });
   } catch (err) {
     console.error(err);
-    return NextResponse.json({ error: "ไม่สามารถสร้างบิลได้" }, { status: 500 });
+    return NextResponse.json(
+      { error: "เกิดข้อผิดพลาดในการสร้างบิล" },
+      { status: 500 }
+    );
   }
 }
