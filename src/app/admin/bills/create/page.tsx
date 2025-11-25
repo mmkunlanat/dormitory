@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { useRouter } from "next/navigation";
 
@@ -21,11 +21,25 @@ const FormCard = styled.div`
   background: #fff;
   border-radius: 20px;
   padding: 24px;
-  box-shadow: 0px 12px 24px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
   max-width: 600px;
 `;
 
 const Input = styled.input`
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #e4e8ef;
+  font-size: 14px;
+  margin-bottom: 12px;
+  outline: none;
+  &:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 8px rgba(37, 99, 235, 0.3);
+  }
+`;
+
+const Select = styled.select`
   width: 100%;
   padding: 10px 12px;
   border-radius: 10px;
@@ -53,29 +67,43 @@ const Button = styled.button`
   }
 `;
 
+interface User {
+  id: number;
+  name: string;
+  room: string;
+}
+
 export default function CreateBillPage() {
   const router = useRouter();
-  const [room, setRoom] = useState("");
+  const [users, setUsers] = useState<User[]>([]);
+  const [userId, setUserId] = useState("");
   const [month, setMonth] = useState("");
   const [rent, setRent] = useState("");
   const [water, setWater] = useState("");
   const [electric, setElectric] = useState("");
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    async function fetchUsers() {
+      const res = await fetch("/api/admin/users"); // API ของผู้เช่า
+      const data = await res.json();
+      setUsers(data);
+    }
+    fetchUsers();
+  }, []);
+
   const handleSubmit = async () => {
-    if (!room || !month || !rent || !water || !electric) {
+    if (!userId || !month || !rent || !water || !electric) {
       return alert("กรุณากรอกข้อมูลทุกช่อง");
     }
 
     setLoading(true);
-
     try {
-      // ตัวอย่างส่ง request ไป API
       const res = await fetch("/api/admin/bills/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          room,
+          userId: Number(userId),
           month,
           rent: Number(rent),
           water: Number(water),
@@ -86,7 +114,7 @@ export default function CreateBillPage() {
       if (!res.ok) throw new Error("เกิดข้อผิดพลาด");
 
       alert("สร้างบิลเรียบร้อย");
-      router.push("/admin/bills/pending"); // กลับไปหน้าบิลรอตรวจสอบ
+      router.push("/admin/bills");
     } catch (err) {
       console.error(err);
       alert("ไม่สามารถสร้างบิลได้");
@@ -99,16 +127,21 @@ export default function CreateBillPage() {
     <Container>
       <Title>สร้างบิลใหม่</Title>
       <FormCard>
+        <Select value={userId} onChange={(e) => setUserId(e.target.value)}>
+          <option value="">-- เลือกผู้เช่า --</option>
+          {users.map((user) => (
+            <option key={user.id} value={user.id}>
+              {user.name} ({user.room})
+            </option>
+          ))}
+        </Select>
+
         <Input
-          placeholder="ห้อง เช่น A101"
-          value={room}
-          onChange={(e) => setRoom(e.target.value)}
-        />
-        <Input
-          placeholder="เดือน เช่น 2025-11"
+          type="month"
           value={month}
           onChange={(e) => setMonth(e.target.value)}
         />
+
         <Input
           type="number"
           placeholder="ค่าห้อง"
@@ -127,6 +160,7 @@ export default function CreateBillPage() {
           value={electric}
           onChange={(e) => setElectric(e.target.value)}
         />
+
         <Button onClick={handleSubmit} disabled={loading}>
           {loading ? "กำลังบันทึก..." : "สร้างบิล"}
         </Button>
