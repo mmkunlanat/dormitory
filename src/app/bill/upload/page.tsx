@@ -1,85 +1,510 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import styled from "styled-components";
+import { useRouter } from "next/navigation";
 
 const Container = styled.div`
   max-width: 600px;
   margin: 40px auto;
-  padding: 20px;
+  padding: 32px;
   background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  border-radius: 20px;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
   font-family: sans-serif;
 `;
 
+const Header = styled.div`
+  margin-bottom: 24px;
+`;
+
 const Title = styled.h1`
-  font-size: 26px;
-  color: #0b2545;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 8px;
+`;
+
+const Subtitle = styled.p`
+  font-size: 14px;
+  color: #6b7280;
+`;
+
+const FormGroup = styled.div`
+  margin-bottom: 24px;
 `;
 
 const Label = styled.label`
-  font-weight: 600;
-  margin-bottom: 8px;
   display: block;
-`;
-
-const FileInput = styled.input`
-  padding: 8px;
-`;
-
-const Preview = styled.img`
-  width: 200px;
-  height: auto;
-  border-radius: 12px;
-  border: 1px solid #ccc;
-  object-fit: cover;
-`;
-
-const Button = styled.button`
-  padding: 10px 14px;
-  border-radius: 12px;
-  border: none;
-  background: linear-gradient(90deg, #2563eb, #4f46e5);
-  color: white;
   font-weight: 600;
+  font-size: 14px;
+  color: #374151;
+  margin-bottom: 8px;
+`;
+
+const RequiredMark = styled.span`
+  color: #ef4444;
+  margin-left: 2px;
+`;
+
+const UploadArea = styled.div<{ $isDragging: boolean }>`
+  border: 2px dashed ${props => props.$isDragging ? '#2563eb' : '#e5e7eb'};
+  border-radius: 12px;
+  padding: 32px 24px;
+  text-align: center;
   cursor: pointer;
-  transition: 0.2s ease;
+  transition: all 0.2s;
+  background: ${props => props.$isDragging ? '#eff6ff' : '#f9fafb'};
+
   &:hover {
-    opacity: 0.9;
+    border-color: #2563eb;
+    background: #eff6ff;
   }
 `;
 
+const UploadIcon = styled.div`
+  font-size: 48px;
+  margin-bottom: 12px;
+`;
+
+const UploadText = styled.div`
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 4px;
+`;
+
+const UploadHint = styled.div`
+  font-size: 12px;
+  color: #9ca3af;
+`;
+
+const HiddenFileInput = styled.input`
+  display: none;
+`;
+
+const PreviewContainer = styled.div`
+  margin-top: 20px;
+  position: relative;
+`;
+
+const PreviewImage = styled.img`
+  width: 100%;
+  max-height: 400px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  object-fit: contain;
+  background: #f9fafb;
+`;
+
+const RemoveButton = styled.button`
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(220, 38, 38, 1);
+    transform: scale(1.1);
+  }
+`;
+
+const FileInfo = styled.div`
+  margin-top: 12px;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #6b7280;
+`;
+
+const Select = styled.select`
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  font-size: 14px;
+  outline: none;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+`;
+
+const Input = styled.input`
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s;
+  box-sizing: border-box;
+
+  &:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 12px;
+  margin-top: 32px;
+`;
+
+const Button = styled.button<{ $variant?: "primary" | "secondary" }>`
+  flex: 1;
+  padding: 14px 20px;
+  border-radius: 12px;
+  border: none;
+  background: ${props => props.$variant === "secondary" ? "#6b7280" : "linear-gradient(90deg, #2563eb, #4f46e5)"};
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    transform: none;
+    opacity: 0.6;
+  }
+`;
+
+const ErrorText = styled.div`
+  color: #ef4444;
+  font-size: 13px;
+  margin-top: 4px;
+`;
+
+const ProgressBar = styled.div`
+  margin-top: 16px;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+`;
+
+const ProgressFill = styled.div<{ $progress: number }>`
+  height: 100%;
+  width: ${props => props.$progress}%;
+  background: linear-gradient(90deg, #2563eb, #4f46e5);
+  transition: width 0.3s;
+`;
+
+const SuccessMessage = styled.div`
+  padding: 16px;
+  background: #d1fae5;
+  color: #065f46;
+  border-radius: 12px;
+  margin-top: 16px;
+  font-size: 14px;
+  text-align: center;
+  font-weight: 600;
+`;
+
+interface Bill {
+  id: number;
+  month: string;
+  total: number;
+}
+
 export default function UploadSlipPage() {
+  const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  // ข้อมูลเพิ่มเติม
+  const [billId, setBillId] = useState("");
+  const [note, setNote] = useState("");
+
+  const validateFile = (file: File): string | null => {
+    // ตรวจสอบประเภทไฟล์
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      return "กรุณาอัปโหลดไฟล์รูปภาพเท่านั้น (JPG, PNG, WEBP)";
+    }
+
+    // ตรวจสอบขนาดไฟล์ (ไม่เกิน 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      return "ไฟล์มีขนาดใหญ่เกิน 5MB";
+    }
+
+    return null;
+  };
+
+  const handleFileSelect = (selectedFile: File) => {
+    setError("");
+    setSuccess(false);
+
+    const validationError = validateFile(selectedFile);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setFile(selectedFile);
+    setPreview(URL.createObjectURL(selectedFile));
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const selected = e.target.files[0];
-      setFile(selected);
-      setPreview(URL.createObjectURL(selected));
+      handleFileSelect(e.target.files[0]);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileSelect(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setFile(null);
+    setPreview(null);
+    setError("");
+    setUploadProgress(0);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
   const handleUpload = async () => {
-    if (!file) return;
-    // TODO: upload file to API / cloudinary
-    alert("อัปโหลดสลิปสำเร็จ (mock)");
+    if (!file) {
+      setError("กรุณาเลือกไฟล์สลิป");
+      return;
+    }
+
+    if (!billId) {
+      setError("กรุณาเลือกบิลที่ต้องการชำระ");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setUploadProgress(0);
+
+    try {
+      // สร้าง FormData
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("billId", billId);
+      if (note) {
+        formData.append("note", note);
+      }
+
+      console.log("🚀 Uploading slip...");
+
+      // Simulate progress (ในการใช้งานจริงควรใช้ XMLHttpRequest หรือ axios ที่รองรับ progress)
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 200);
+
+      // อัปโหลดไฟล์
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      clearInterval(progressInterval);
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await response.text();
+        console.error("❌ Response is not JSON:", text.substring(0, 200));
+        throw new Error("Server ตอบกลับไม่ถูกต้อง");
+      }
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || data.details || "การอัปโหลดล้มเหลว");
+      }
+
+      setUploadProgress(100);
+      setSuccess(true);
+
+      console.log("✅ Upload success:", data);
+
+      // แสดง success message 2 วินาที แล้ว redirect
+      setTimeout(() => {
+        router.push("/user/bills");
+      }, 2000);
+
+    } catch (err: any) {
+      console.error("❌ Upload error:", err);
+      setError(err.message || "เกิดข้อผิดพลาดในการอัปโหลด");
+      setUploadProgress(0);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(2) + " MB";
   };
 
   return (
     <Container>
-      <Title>อัปโหลดสลิปชำระเงิน</Title>
-      <div>
-        <Label>เลือกสลิปของคุณ</Label>
-        <FileInput type="file" accept="image/*" onChange={handleFileChange} />
-      </div>
-      {preview && <Preview src={preview} alt="slip preview" />}
-      <Button onClick={handleUpload}>อัปโหลดสลิป</Button>
+      <Header>
+        <Title>💳 อัปโหลดสลิปชำระเงิน</Title>
+        <Subtitle>อัปโหลดหลักฐานการชำระเงินเพื่อยืนยันการชำระค่าเช่า</Subtitle>
+      </Header>
+
+      {/* เลือกบิล */}
+      <FormGroup>
+        <Label>
+          บิลที่ต้องการชำระ <RequiredMark>*</RequiredMark>
+        </Label>
+        <Select
+          value={billId}
+          onChange={(e) => setBillId(e.target.value)}
+          disabled={loading}
+        >
+          <option value="">-- เลือกบิล --</option>
+          <option value="1">บิล เดือน มกราคม 2024 - 3,600 บาท</option>
+          <option value="2">บิล เดือน กุมภาพันธ์ 2024 - 3,500 บาท</option>
+          <option value="3">บิล เดือน มีนาคม 2024 - 3,700 บาท</option>
+        </Select>
+      </FormGroup>
+
+      {/* Upload Area */}
+      <FormGroup>
+        <Label>
+          อัปโหลดสลิป <RequiredMark>*</RequiredMark>
+        </Label>
+        
+        {!preview ? (
+          <UploadArea
+            $isDragging={isDragging}
+            onClick={() => fileInputRef.current?.click()}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <UploadIcon>📤</UploadIcon>
+            <UploadText>คลิกเพื่อเลือกไฟล์ หรือลากไฟล์มาวางที่นี่</UploadText>
+            <UploadHint>รองรับ JPG, PNG, WEBP (ไม่เกิน 5MB)</UploadHint>
+          </UploadArea>
+        ) : (
+          <PreviewContainer>
+            <PreviewImage src={preview} alt="slip preview" />
+            <RemoveButton onClick={handleRemoveFile} type="button">
+              ✕
+            </RemoveButton>
+            {file && (
+              <FileInfo>
+                📎 {file.name} ({formatFileSize(file.size)})
+              </FileInfo>
+            )}
+          </PreviewContainer>
+        )}
+
+        <HiddenFileInput
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/jpg,image/png,image/webp"
+          onChange={handleFileChange}
+        />
+      </FormGroup>
+
+      {/* หมายเหตุ */}
+      <FormGroup>
+        <Label>หมายเหตุ (ถ้ามี)</Label>
+        <Input
+          type="text"
+          placeholder="เช่น โอนเวลา 14:30 น."
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          disabled={loading}
+        />
+      </FormGroup>
+
+      {/* Error Message */}
+      {error && <ErrorText>❌ {error}</ErrorText>}
+
+      {/* Progress Bar */}
+      {loading && uploadProgress > 0 && (
+        <ProgressBar>
+          <ProgressFill $progress={uploadProgress} />
+        </ProgressBar>
+      )}
+
+      {/* Success Message */}
+      {success && (
+        <SuccessMessage>
+          ✅ อัปโหลดสลิปสำเร็จ! กำลังนำคุณไปยังหน้ารายการบิล...
+        </SuccessMessage>
+      )}
+
+      {/* Buttons */}
+      <ButtonGroup>
+        <Button
+          $variant="secondary"
+          onClick={() => router.back()}
+          disabled={loading}
+        >
+          ยกเลิก
+        </Button>
+        <Button onClick={handleUpload} disabled={loading || !file || !billId}>
+          {loading ? "⏳ กำลังอัปโหลด..." : "✅ อัปโหลดสลิป"}
+        </Button>
+      </ButtonGroup>
     </Container>
   );
 }
