@@ -36,70 +36,113 @@ const Input = styled.input`
   border:1px solid #e4e8ef;
   outline:none;
   font-size:14px;
-  transition: box-shadow .12s ease, border-color .12s ease;
-  &:focus { box-shadow:0 6px 18px rgba(14,46,99,0.06); border-color:#7aa2ff; }
 `;
-const Row = styled.div`display:flex; justify-content:space-between; align-items:center;`;
-const Button = styled.button<{ variant?: "primary" | "ghost" }>`
-  height:48px; border-radius:12px; border:none; cursor:pointer; font-weight:600; font-size:15px;
-  ${(p)=> p.variant==="ghost"? `background:transparent;color:#0b2545;box-shadow:none;` 
-  : `background: linear-gradient(90deg,#2563eb,#4f46e5); color:white; box-shadow:0 8px 24px rgba(79,70,229,0.12);`}
+
+const Button = styled.button`
+  height:48px;
+  border-radius:12px;
+  border:none;
+  cursor:pointer;
+  font-weight:600;
+  font-size:15px;
+  background: linear-gradient(90deg,#2563eb,#4f46e5);
+  color:white;
 `;
-const Err = styled.div`color:#b00020; font-size:13px;`;
-const Small = styled.span`font-size:13px; color:#4b5b6a;`;
+
+const RoleButton = styled.button`
+  height:44px;
+  width: 100%;
+  border-radius:10px;
+  border:1px solid #d1d5db;
+  cursor:pointer;
+  background:white;
+  font-weight:600;
+  transition:0.15s ease;
+  &:hover {
+    background:#f3f4f6;
+  }
+`;
+
+const Row = styled.div`
+  display:flex;
+  gap:10px;
+  margin-top: 10px;
+`;
+
+const Err = styled.div`
+  color:#b00020;
+  font-size:13px;
+`;
 
 export default function LoginPage() {
   const router = useRouter();
   const [email,setEmail]=useState("");
   const [password,setPassword]=useState("");
-  const [loading,setLoading]=useState(false);
-  const [error,setError]=useState<string|null>(null);
-  const [showPassword,setShowPassword]=useState(false);
+  const [error,setError]=useState("");
 
-  function validateEmail(v:string){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+  const [step, setStep] = useState<"login" | "role">("login");
 
-  async function handleSubmit(e:React.FormEvent){
+  function handleLogin(e:React.FormEvent) {
     e.preventDefault();
-    setError(null);
-    if(!email||!validateEmail(email)){ setError("โปรดใส่อีเมลที่ถูกต้อง"); return; }
-    if(!password||password.length<6){ setError("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร"); return; }
 
-    setLoading(true);
-    try{
-      // ตัวอย่างสมมติ login สำเร็จ
-      await new Promise(r=>setTimeout(r,800)); // delay จำลอง async
-      router.push("/dashboard");
-    }catch(err:any){ setError("เกิดข้อผิดพลาด"); }
-    finally{ setLoading(false); }
+    if (!email || !password) {
+      setError("กรุณากรอกข้อมูลให้ครบถ้วน");
+      return;
+    }
+
+    setError("");
+
+    // ขั้นตอนต่อไป: เลือกบทบาท
+    setStep("role");
+  }
+
+  function chooseRole(role: "admin" | "user") {
+    localStorage.setItem("role", role);
+
+    if (role === "admin") router.push("/admin");
+    else router.push("/dashboard");
   }
 
   return (
     <PageWrap>
       <Card>
-        <div><Title>เข้าสู่ระบบ</Title><Sub>เข้าสู่ระบบเพื่อดูบิลและอัปโหลดสลิป</Sub></div>
-        <Form onSubmit={handleSubmit} noValidate>
-          {error && <Err>{error}</Err>}
-          <Label><Small>อีเมล</Small>
-            <Input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="example@mail.com" required/>
-          </Label>
-          <Label>
+
+        {step === "login" && (
+          <>
+            <Title>เข้าสู่ระบบ</Title>
+            <Sub>กรอกข้อมูลเพื่อดำเนินการต่อ</Sub>
+
+            <Form onSubmit={handleLogin}>
+              {error && <Err>{error}</Err>}
+
+              <Label>อีเมล
+                <Input value={email} onChange={e=>setEmail(e.target.value)} />
+              </Label>
+
+              <Label>รหัสผ่าน
+                <Input type="password" value={password} onChange={e=>setPassword(e.target.value)} />
+              </Label>
+
+              <Button type="submit">ถัดไป</Button>
+            </Form>
+          </>
+        )}
+
+        {step === "role" && (
+          <>
+            <Title>เลือกประเภทการใช้งาน</Title>
+            <Sub>คุณต้องการเข้าสู่ระบบในบทบาทใด?</Sub>
+
             <Row>
-              <Small>รหัสผ่าน</Small>
-              <Small style={{cursor:"pointer"}} onClick={()=>setShowPassword(s=>!s)}>
-                {showPassword?"ซ่อน":"แสดง"}
-              </Small>
+              <RoleButton onClick={() => chooseRole("user")}>เข้าสู่ระบบแบบผู้ใช้งาน</RoleButton>
             </Row>
-            <Input type={showPassword?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} placeholder="รหัสผ่านของคุณ" required/>
-          </Label>
-          <Row style={{marginTop:6}}>
-            <Small>ยังไม่มีบัญชี? <a href="/register">สมัครสมาชิก</a></Small>
-          </Row>
-          <div style={{display:'flex',gap:12,marginTop:8}}>
-            <Button type="submit" style={{flex:1}} disabled={loading}>
-              {loading?"กำลังเข้าสู่ระบบ...":"เข้าสู่ระบบ"}
-            </Button>
-          </div>
-        </Form>
+
+            <Row>
+              <RoleButton onClick={() => chooseRole("admin")}>เข้าสู่ระบบแบบผู้ดูแลระบบ</RoleButton>
+            </Row>
+          </>
+        )}
+
       </Card>
     </PageWrap>
   );

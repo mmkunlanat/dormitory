@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import styled from "styled-components";
 import { useRouter } from "next/navigation";
 
@@ -31,11 +31,6 @@ const Button = styled.button`
   color: white;
   font-weight: 600;
   cursor: pointer;
-  transition: 0.2s ease;
-
-  &:hover {
-    opacity: 0.9;
-  }
 `;
 
 const CardContainer = styled.div`
@@ -49,16 +44,8 @@ const Card = styled.div`
   background: #fff;
   border-radius: 16px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
   cursor: pointer;
   transition: 0.2s ease;
-
-  &:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
-  }
 `;
 
 const CardTitle = styled.h2`
@@ -75,7 +62,15 @@ const CardDesc = styled.p`
 export default function AdminDashboardPage() {
   const router = useRouter();
 
-  // ตัวอย่างเมนู admin
+  // ⛔ ป้องกันคนที่ไม่ใช่ admin
+  useEffect(() => {
+    const role = localStorage.getItem("role");
+
+    if (role !== "admin") {
+      router.replace("/login");
+    }
+  }, []);
+
   const cards = [
     { title: "จัดการผู้ใช้", desc: "ดู/แก้ไขข้อมูลผู้เช่า", route: "/admin/users" },
     { title: "บิลรอตรวจสอบ", desc: "อนุมัติหรือปฏิเสธบิล", route: "/admin/bills/pending" },
@@ -86,7 +81,14 @@ export default function AdminDashboardPage() {
     <Container>
       <Header>
         <Title>Admin Dashboard</Title>
-        <Button onClick={() => router.push("/login")}>ออกจากระบบ</Button>
+        <Button
+          onClick={() => {
+            localStorage.removeItem("role");
+            router.push("/login");
+          }}
+        >
+          ออกจากระบบ
+        </Button>
       </Header>
 
       <CardContainer>
