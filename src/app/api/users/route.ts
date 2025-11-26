@@ -1,15 +1,12 @@
 import { NextResponse } from "next/server";
-
-// ตัวอย่างข้อมูลผู้เช่า (คุณสามารถเปลี่ยนเป็นดึงจากฐานข้อมูลจริง)
-const users = [
-  { id: 1, name: "สมชาย ใจดี", room: "A101", phone: "080-123-4567", status: "ACTIVE" },
-  { id: 2, name: "ณัฐวดี ทองดี", room: "A102", phone: "081-555-7890", status: "ACTIVE" },
-  { id: 3, name: "กิตติชัย กุลวงศ์", room: "A103", phone: "089-222-1111", status: "INACTIVE" },
-];
+import prisma from "@/lib/prisma";
 
 // GET /api/users
 export async function GET() {
   try {
+    const users = await prisma.user.findMany({
+      orderBy: { room: 'asc' },
+    });
     return NextResponse.json(users);
   } catch (error: any) {
     console.error("Error fetching users:", error);

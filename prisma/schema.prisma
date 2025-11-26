@@ -1,18 +1,4 @@
-// prisma/schema.prisma
-
-generator client {
-  provider = "prisma-client-js"
-}
-
-datasource db {
-  provider = "postgresql"  // หรือ mysql, sqlite
-  url      = env("DATABASE_URL")
-}
-
-model User {
-  id        Int       @id @default(autoincrement())
-  name      String
-  room      String
+```
   phone     String?
   email     String?   @unique
   password  String?
@@ -26,8 +12,8 @@ model User {
 }
 
 model Bill {
-  id        Int       @id @default(autoincrement())
-  userId    Int
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String    @db.ObjectId
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   month     String    // Format: YYYY-MM
   rent      Float
@@ -49,12 +35,12 @@ model Bill {
 }
 
 model Payment {
-  id            Int       @id @default(autoincrement())
-  billId        Int
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  billId        String    @db.ObjectId
   bill          Bill      @relation(fields: [billId], references: [id], onDelete: Cascade)
   slipUrl       String    // URL ของสลิปใน Cloudinary
   slipPublicId  String?   // Public ID ใน Cloudinary (สำหรับลบภาพ)
-  ocrText       String?   @db.Text // ข้อความที่อ่านได้จาก OCR
+  ocrText       String?   // ข้อความที่อ่านได้จาก OCR
   note          String?   // หมายเหตุจากผู้ใช้
   amount        Float?    // จำนวนเงินที่โอน (ถ้าอ่านได้จาก OCR)
   status        String    @default("PENDING") 
@@ -71,7 +57,7 @@ model Payment {
 
 // ตัวอย่าง Admin User model (ถ้าต้องการ)
 model Admin {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   username  String   @unique
   email     String   @unique
   password  String   // ควร hash ด้วย bcrypt
@@ -80,3 +66,4 @@ model Admin {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+```
