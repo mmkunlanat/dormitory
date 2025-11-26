@@ -2,15 +2,38 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { generateToken } from "@/lib/jwt";
 
+// POST /api/register - Register new user
 export async function POST(req: Request) {
   try {
-    // รับค่าจากหน้าเว็บ/Postman
-    const { email, password, name, role } = await req.json();
+    const { email, password, name, role, room, phone } = await req.json();
 
-    // เช็คว่ามีข้อมูลสำคัญครบไหม
+    // Validation
     if (!email || !password) {
-        return NextResponse.json({ error: "กรุณากรอก Email และ Password" }, { status: 400 });
+      return NextResponse.json(
+        { error: "กรุณากรอก Email และ Password" },
+        { status: 400 }
+      );
+    }
+
+    if (!name) {
+      return NextResponse.json(
+        { error: "กรุณากรอกชื่อ" },
+        { status: 400 }
+      );
+    }
+
+    // เช็คว่า email ซ้ำหรือไม่
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      return NextResponse.json(
+        { error: "Email นี้ถูกใช้งานแล้ว" },
+        { status: 409 }
+      );
     }
 
     // Hash รหัสผ่าน
@@ -21,18 +44,45 @@ export async function POST(req: Request) {
       data: {
         email,
         password: hashedPassword,
-        
-        // --- จุดที่แก้: ใส่ค่า default ให้ name ถ้าไม่ได้ส่งมา ---
-        name: name || "ไม่ระบุชื่อ", 
-        
-        role: role || "user", 
-        room: "Temp",        
+        name,
+        role: role || "user",
+        room: room || "Temp",
+        phone: phone || null,
       },
     });
 
-    return NextResponse.json({ success: true, user });
+    // สร้าง JWT token
+    const token = generateToken({
+      userId: user.id,
+      email: user.email!,
+      role: user.role,
+      name: user.name,
+    });
+
+    // ส่งข้อมูลกลับโดยไม่รวม password
+    const { password: _, ...userWithoutPassword } = user;
+
+    return NextResponse.json({
+      success: true,
+      message: "สมัครสมาชิกสำเร็จ",
+      token,
+      user: userWithoutPassword,
+    });
+
   } catch (error: any) {
     console.error("Register Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+
+    // จัดการ Prisma error
+    if (error.code === "P2002") {
+      return NextResponse.json(
+        { error: "Email นี้ถูกใช้งานแล้ว" },
+        { status: 409 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: error.message || "เกิดข้อผิดพลาดในการสมัครสมาชิก" },
+      { status: 500 }
+    );
   }
 }

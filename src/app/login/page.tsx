@@ -123,7 +123,8 @@ export default function LoginPage() {
       const userRole = data.user.role;
       setDbRole(userRole);
 
-      // บันทึก User Info ลง LocalStorage (หรือ Cookies)
+      // บันทึก JWT Token และ User Info ลง LocalStorage
+      localStorage.setItem("token", data.token); // เพิ่มบรรทัดนี้!
       localStorage.setItem("user", JSON.stringify(data.user));
 
       // Logic: ถ้าเป็น Admin ให้เลือกบทบาทได้, ถ้าเป็น User ธรรมดา ให้เข้า Dashboard เลย

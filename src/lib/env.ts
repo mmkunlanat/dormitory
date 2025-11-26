@@ -39,10 +39,15 @@ export const DATABASE_URL = envFromFile.DATABASE_URL || process.env.DATABASE_URL
 export const CLOUDINARY_CLOUD_NAME = envFromFile.CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME;
 export const CLOUDINARY_API_KEY = envFromFile.CLOUDINARY_API_KEY || process.env.CLOUDINARY_API_KEY;
 export const CLOUDINARY_API_SECRET = envFromFile.CLOUDINARY_API_SECRET || process.env.CLOUDINARY_API_SECRET;
+export const JWT_SECRET = envFromFile.JWT_SECRET || process.env.JWT_SECRET;
 
 // Validate required environment variables
 if (!DATABASE_URL) {
   throw new Error("DATABASE_URL is not defined in environment variables");
+}
+
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET is not defined in environment variables");
 }
 
 // Log to verify (remove in production)
