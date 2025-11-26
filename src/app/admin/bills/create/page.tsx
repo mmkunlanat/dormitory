@@ -5,7 +5,7 @@ import styled from "styled-components";
 import { useRouter } from "next/navigation";
 
 interface User {
-  id: number;
+  id: string;
   name: string;
   room: string;
   status?: string;
@@ -128,7 +128,7 @@ const Button = styled.button<{ $variant?: "primary" | "secondary" }>`
 
   &:hover {
     background: ${(props) =>
-      props.$variant === "secondary" ? "#4b5563" : "#1e40af"};
+    props.$variant === "secondary" ? "#4b5563" : "#1e40af"};
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
@@ -196,7 +196,7 @@ const LoadingText = styled.div`
 export default function CreateBillPage() {
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
-  const [userId, setUserId] = useState<number | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [month, setMonth] = useState("");
   const [rent, setRent] = useState("");
   const [water, setWater] = useState("");
@@ -262,9 +262,8 @@ export default function CreateBillPage() {
     if (!validateForm()) return;
 
     const selectedUser = users.find((u) => u.id === userId);
-    const confirmMsg = `ต้องการสร้างบิลสำหรับ:\n\n${
-      selectedUser?.name
-    } (ห้อง ${selectedUser?.room})\nเดือน: ${month}\nยอดรวม: ${calculateTotal().toLocaleString()} บาท`;
+    const confirmMsg = `ต้องการสร้างบิลสำหรับ:\n\n${selectedUser?.name
+      } (ห้อง ${selectedUser?.room})\nเดือน: ${month}\nยอดรวม: ${calculateTotal().toLocaleString()} บาท`;
 
     if (!window.confirm(confirmMsg)) return;
 
@@ -320,7 +319,7 @@ export default function CreateBillPage() {
               <Select
                 value={userId ?? ""}
                 onChange={(e) => {
-                  setUserId(Number(e.target.value));
+                  setUserId(e.target.value);
                   setErrors({ ...errors, userId: "" });
                 }}
                 disabled={loading}
