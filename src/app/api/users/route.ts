@@ -16,3 +16,35 @@ export async function GET() {
     );
   }
 }
+
+// POST /api/users
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const { name, room, phone, status } = body;
+
+    if (!name || !room) {
+      return NextResponse.json(
+        { error: "กรุณากรอกชื่อและห้อง" },
+        { status: 400 }
+      );
+    }
+
+    const newUser = await prisma.user.create({
+      data: {
+        name,
+        room,
+        phone,
+        status: status || "ACTIVE",
+      },
+    });
+
+    return NextResponse.json(newUser, { status: 201 });
+  } catch (error: any) {
+    console.error("Error creating user:", error);
+    return NextResponse.json(
+      { error: "ไม่สามารถสร้างผู้เช่าได้" },
+      { status: 500 }
+    );
+  }
+}

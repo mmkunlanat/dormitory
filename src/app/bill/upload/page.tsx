@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import styled from "styled-components";
 import { useRouter } from "next/navigation";
 
@@ -224,287 +224,203 @@ const SuccessMessage = styled.div`
   color: #065f46;
   border-radius: 12px;
   margin-top: 16px;
-  font-size: 14px;
-  text-align: center;
-  font-weight: 600;
-`;
+  setUploadProgress(0);
+  if (fileInputRef.current) {
+    fileInputRef.current.value = "";
+  }
+};
 
-interface Bill {
-  id: number;
-  month: string;
-  total: number;
-}
+const handleUpload = async () => {
+  if (!file) {
+    setError("กรุณาเลือกไฟล์สลิป");
+    return;
+  }
 
-export default function UploadSlipPage() {
-  const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  if (!billId) {
+    setError("กรุณาเลือกบิลที่ต้องการชำระ");
+    return;
+  }
 
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
+  setLoading(true);
+  setError("");
+  setUploadProgress(0);
 
-  // ข้อมูลเพิ่มเติม
-  const [billId, setBillId] = useState("");
-  const [note, setNote] = useState("");
-
-  const validateFile = (file: File): string | null => {
-    // ตรวจสอบประเภทไฟล์
-    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-    if (!allowedTypes.includes(file.type)) {
-      return "กรุณาอัปโหลดไฟล์รูปภาพเท่านั้น (JPG, PNG, WEBP)";
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("billId", billId);
+    if (note) {
+      formData.append("note", note);
     }
 
-    // ตรวจสอบขนาดไฟล์ (ไม่เกิน 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      return "ไฟล์มีขนาดใหญ่เกิน 5MB";
-    }
+    console.log("🚀 Uploading slip...");
 
-    return null;
-  };
-
-  const handleFileSelect = (selectedFile: File) => {
-    setError("");
-    setSuccess(false);
-
-    const validationError = validateFile(selectedFile);
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
-    setFile(selectedFile);
-    setPreview(URL.createObjectURL(selectedFile));
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      handleFileSelect(e.target.files[0]);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileSelect(e.dataTransfer.files[0]);
-    }
-  };
-
-  const handleRemoveFile = () => {
-    setFile(null);
-    setPreview(null);
-    setError("");
-    setUploadProgress(0);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const handleUpload = async () => {
-    if (!file) {
-      setError("กรุณาเลือกไฟล์สลิป");
-      return;
-    }
-
-    if (!billId) {
-      setError("กรุณาเลือกบิลที่ต้องการชำระ");
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-    setUploadProgress(0);
-
-    try {
-      // สร้าง FormData
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("billId", billId);
-      if (note) {
-        formData.append("note", note);
-      }
-
-      console.log("🚀 Uploading slip...");
-
-      // Simulate progress (ในการใช้งานจริงควรใช้ XMLHttpRequest หรือ axios ที่รองรับ progress)
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 200);
-
-      // อัปโหลดไฟล์
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return 90;
+        }
+        return prev + 10;
       });
+    }, 200);
 
-      clearInterval(progressInterval);
+    const response = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    });
 
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const text = await response.text();
-        console.error("❌ Response is not JSON:", text.substring(0, 200));
-        throw new Error("Server ตอบกลับไม่ถูกต้อง");
-      }
+    clearInterval(progressInterval);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || data.details || "การอัปโหลดล้มเหลว");
-      }
-
-      setUploadProgress(100);
-      setSuccess(true);
-
-      console.log("✅ Upload success:", data);
-
-      // แสดง success message 2 วินาที แล้ว redirect
-      setTimeout(() => {
-        router.push("/user/bills");
-      }, 2000);
-
-    } catch (err: any) {
-      console.error("❌ Upload error:", err);
-      setError(err.message || "เกิดข้อผิดพลาดในการอัปโหลด");
-      setUploadProgress(0);
-    } finally {
-      setLoading(false);
+    const contentType = response.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      const text = await response.text();
+      console.error("❌ Response is not JSON:", text.substring(0, 200));
+      throw new Error("Server ตอบกลับไม่ถูกต้อง");
     }
-  };
 
-  const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return bytes + " B";
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + " KB";
-    return (bytes / (1024 * 1024)).toFixed(2) + " MB";
-  };
+    const data = await response.json();
 
-  return (
-    <Container>
-      <Header>
-        <Title>💳 อัปโหลดสลิปชำระเงิน</Title>
-        <Subtitle>อัปโหลดหลักฐานการชำระเงินเพื่อยืนยันการชำระค่าเช่า</Subtitle>
-      </Header>
+    if (!response.ok) {
+      throw new Error(data.error || data.details || "การอัปโหลดล้มเหลว");
+    }
 
-      {/* เลือกบิล */}
-      <FormGroup>
-        <Label>
-          บิลที่ต้องการชำระ <RequiredMark>*</RequiredMark>
-        </Label>
-        <Select
-          value={billId}
-          onChange={(e) => setBillId(e.target.value)}
-          disabled={loading}
+    setUploadProgress(100);
+    setSuccess(true);
+
+    console.log("✅ Upload success:", data);
+
+    setTimeout(() => {
+      router.push("/user/bills");
+    }, 2000);
+
+  } catch (err: any) {
+    console.error("❌ Upload error:", err);
+    setError(err.message || "เกิดข้อผิดพลาดในการอัปโหลด");
+    setUploadProgress(0);
+  } finally {
+    setLoading(false);
+  }
+};
+
+const formatFileSize = (bytes: number): string => {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(2) + " MB";
+};
+
+const formatMonth = (month: string): string => {
+  const months = [
+    "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+    "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+  ];
+  const [year, monthNum] = month.split("-");
+  return `${ months[parseInt(monthNum) - 1]} ${ parseInt(year) + 543}`;
+};
+
+return (
+  <Container>
+    <Header>
+      <Title>💳 อัปโหลดสลิปชำระเงิน</Title>
+      <Subtitle>อัปโหลดหลักฐานการชำระเงินเพื่อยืนยันการชำระค่าเช่า</Subtitle>
+    </Header>
+
+    <FormGroup>
+      <Label>
+        บิลที่ต้องการชำระ <RequiredMark>*</RequiredMark>
+      </Label>
+      <Select
+        value={billId}
+        onChange={(e) => setBillId(e.target.value)}
+        disabled={loading || loadingBills}
+      >
+        <option value="">
+          {loadingBills ? "กำลังโหลด..." : "-- เลือกบิล --"}
+        </option>
+        {bills.map((bill) => (
+          <option key={bill.id} value={bill.id}>
+            บิล เดือน {formatMonth(bill.month)} - {bill.total.toLocaleString()} บาท
+          </option>
+        ))}
+      </Select>
+    </FormGroup>
+
+    <FormGroup>
+      <Label>
+        อัปโหลดสลิป <RequiredMark>*</RequiredMark>
+      </Label>
+
+      {!preview ? (
+        <UploadArea
+          $isDragging={isDragging}
+          onClick={() => fileInputRef.current?.click()}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
         >
-          <option value="">-- เลือกบิล --</option>
-          <option value="1">บิล เดือน มกราคม 2024 - 3,600 บาท</option>
-          <option value="2">บิล เดือน กุมภาพันธ์ 2024 - 3,500 บาท</option>
-          <option value="3">บิล เดือน มีนาคม 2024 - 3,700 บาท</option>
-        </Select>
-      </FormGroup>
-
-      {/* Upload Area */}
-      <FormGroup>
-        <Label>
-          อัปโหลดสลิป <RequiredMark>*</RequiredMark>
-        </Label>
-        
-        {!preview ? (
-          <UploadArea
-            $isDragging={isDragging}
-            onClick={() => fileInputRef.current?.click()}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
-            <UploadIcon>📤</UploadIcon>
-            <UploadText>คลิกเพื่อเลือกไฟล์ หรือลากไฟล์มาวางที่นี่</UploadText>
-            <UploadHint>รองรับ JPG, PNG, WEBP (ไม่เกิน 5MB)</UploadHint>
-          </UploadArea>
-        ) : (
-          <PreviewContainer>
-            <PreviewImage src={preview} alt="slip preview" />
-            <RemoveButton onClick={handleRemoveFile} type="button">
-              ✕
-            </RemoveButton>
-            {file && (
-              <FileInfo>
-                📎 {file.name} ({formatFileSize(file.size)})
-              </FileInfo>
-            )}
-          </PreviewContainer>
-        )}
-
-        <HiddenFileInput
-          ref={fileInputRef}
-          type="file"
-          accept="image/jpeg,image/jpg,image/png,image/webp"
-          onChange={handleFileChange}
-        />
-      </FormGroup>
-
-      {/* หมายเหตุ */}
-      <FormGroup>
-        <Label>หมายเหตุ (ถ้ามี)</Label>
-        <Input
-          type="text"
-          placeholder="เช่น โอนเวลา 14:30 น."
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          disabled={loading}
-        />
-      </FormGroup>
-
-      {/* Error Message */}
-      {error && <ErrorText>❌ {error}</ErrorText>}
-
-      {/* Progress Bar */}
-      {loading && uploadProgress > 0 && (
-        <ProgressBar>
-          <ProgressFill $progress={uploadProgress} />
-        </ProgressBar>
+          <UploadIcon>📤</UploadIcon>
+          <UploadText>คลิกเพื่อเลือกไฟล์ หรือลากไฟล์มาวางที่นี่</UploadText>
+          <UploadHint>รองรับ JPG, PNG, WEBP (ไม่เกิน 5MB)</UploadHint>
+        </UploadArea>
+      ) : (
+        <PreviewContainer>
+          <PreviewImage src={preview} alt="slip preview" />
+          <RemoveButton onClick={handleRemoveFile} type="button">
+            ✕
+          </RemoveButton>
+          {file && (
+            <FileInfo>
+              📎 {file.name} ({formatFileSize(file.size)})
+            </FileInfo>
+          )}
+        </PreviewContainer>
       )}
 
-      {/* Success Message */}
-      {success && (
-        <SuccessMessage>
-          ✅ อัปโหลดสลิปสำเร็จ! กำลังนำคุณไปยังหน้ารายการบิล...
-        </SuccessMessage>
-      )}
+      <HiddenFileInput
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/jpg,image/png,image/webp"
+        onChange={handleFileChange}
+      />
+    </FormGroup>
 
-      {/* Buttons */}
-      <ButtonGroup>
-        <Button
-          $variant="secondary"
-          onClick={() => router.back()}
-          disabled={loading}
-        >
-          ยกเลิก
-        </Button>
-        <Button onClick={handleUpload} disabled={loading || !file || !billId}>
-          {loading ? "⏳ กำลังอัปโหลด..." : "✅ อัปโหลดสลิป"}
-        </Button>
-      </ButtonGroup>
-    </Container>
-  );
+    <FormGroup>
+      <Label>หมายเหตุ (ถ้ามี)</Label>
+      <Input
+        type="text"
+        placeholder="เช่น โอนเวลา 14:30 น."
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        disabled={loading}
+      />
+    </FormGroup>
+
+    {error && <ErrorText>❌ {error}</ErrorText>}
+
+    {loading && uploadProgress > 0 && (
+      <ProgressBar>
+        <ProgressFill $progress={uploadProgress} />
+      </ProgressBar>
+    )}
+
+    {success && (
+      <SuccessMessage>
+        ✅ อัปโหลดสลิปสำเร็จ! กำลังนำคุณไปยังหน้ารายการบิล...
+      </SuccessMessage>
+    )}
+
+    <ButtonGroup>
+      <Button
+        $variant="secondary"
+        onClick={() => router.back()}
+        disabled={loading}
+      >
+        ยกเลิก
+      </Button>
+      <Button onClick={handleUpload} disabled={loading || !file || !billId}>
+        {loading ? "⏳ กำลังอัปโหลด..." : "✅ อัปโหลดสลิป"}
+      </Button>
+    </ButtonGroup>
+  </Container>
+);
 }

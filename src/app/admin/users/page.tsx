@@ -1,21 +1,15 @@
 "use client";
 import styled from "styled-components";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 interface User {
-  id: number;
+  id: string;
   name: string;
   room: string;
   phone: string;
   status: "ACTIVE" | "INACTIVE";
 }
-
-const initialUsers: User[] = [
-  { id: 1, name: "สมชาย ใจดี", room: "A101", phone: "080-123-4567", status: "ACTIVE" },
-  { id: 2, name: "ณัฐวดี ทองดี", room: "A102", phone: "081-555-7890", status: "ACTIVE" },
-  { id: 3, name: "กิตติชัย กุลวงศ์", room: "A103", phone: "089-222-1111", status: "INACTIVE" },
-];
 
 const Container = styled.div`
   min-height: 100vh;
@@ -198,6 +192,7 @@ const AddButton = styled.button`
     background: #9ca3af;
     cursor: not-allowed;
     transform: none;
+    box-shadow: none;
   }
 `;
 
@@ -217,12 +212,27 @@ const EmptyState = styled.div`
 `;
 
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState<User[]>(initialUsers);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [room, setRoom] = useState("");
   const [phone, setPhone] = useState("");
   const [status, setStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  async function fetchUsers() {
+    try {
+      const res = await fetch("/api/users");
+      const data = await res.json();
+      setUsers(data);
+    } catch (error) {
+      console.error("Failed to fetch users", error);
+    }
+  }
 
   function resetForm() {
     setName("");
@@ -232,7 +242,7 @@ export default function AdminUsersPage() {
     setEditingId(null);
   }
 
-  function handleAddOrUpdate() {
+  async function handleAddOrUpdate() {
     // Validation
     if (!name.trim() || !room.trim() || !phone.trim()) {
       alert("กรุณากรอกข้อมูลให้ครบถ้วน");
@@ -246,49 +256,64 @@ export default function AdminUsersPage() {
       return;
     }
 
-    if (editingId !== null) {
-      // Update existing user
-      setUsers(
-        users.map((u) =>
-          u.id === editingId
-            ? { id: u.id, name: name.trim(), room: room.trim(), phone: phone.trim(), status }
-            : u
-        )
-      );
-    } else {
-      // Add new user
-      const newUser: User = {
-        id: users.length ? Math.max(...users.map((u) => u.id)) + 1 : 1,
-        name: name.trim(),
-        room: room.trim(),
-        phone: phone.trim(),
-        status,
-      };
-      setUsers([...users, newUser]);
+    setLoading(true);
+    try {
+      if (editingId !== null) {
+        // Update existing user
+        const res = await fetch(`/api/users/${editingId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, room, phone, status }),
+        });
+        if (!res.ok) throw new Error("Failed to update");
+      } else {
+        // Add new user
+        const res = await fetch("/api/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, room, phone, status }),
+        });
+        if (!res.ok) throw new Error("Failed to create");
+      }
+      await fetchUsers();
+      resetForm();
+    } catch (error) {
+      console.error(error);
+      alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+    } finally {
+      setLoading(false);
     }
-
-    resetForm();
   }
 
   function handleEdit(user: User) {
     setEditingId(user.id);
     setName(user.name);
     setRoom(user.room);
-    setPhone(user.phone);
-    setStatus(user.status);
-    
+    setPhone(user.phone || "");
+    setStatus(user.status as "ACTIVE" | "INACTIVE");
+
     // Scroll to form
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function handleDelete(userId: number) {
+  async function handleDelete(userId: string) {
     const user = users.find((u) => u.id === userId);
     if (user && window.confirm(`คุณแน่ใจหรือว่าต้องการลบ "${user.name}"?`)) {
-      setUsers(users.filter((u) => u.id !== userId));
-      
-      // If deleting the user being edited, reset form
-      if (editingId === userId) {
-        resetForm();
+      try {
+        const res = await fetch(`/api/users/${userId}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) throw new Error("Failed to delete");
+
+        setUsers(users.filter((u) => u.id !== userId));
+
+        // If deleting the user being edited, reset form
+        if (editingId === userId) {
+          resetForm();
+        }
+      } catch (error) {
+        console.error(error);
+        alert("เกิดข้อผิดพลาดในการลบข้อมูล");
       }
     }
   }
@@ -318,6 +343,7 @@ export default function AdminUsersPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             maxLength={100}
+            disabled={loading}
           />
         </FormGroup>
 
@@ -328,6 +354,7 @@ export default function AdminUsersPage() {
             value={room}
             onChange={(e) => setRoom(e.target.value)}
             maxLength={20}
+            disabled={loading}
           />
         </FormGroup>
 
@@ -338,23 +365,28 @@ export default function AdminUsersPage() {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             maxLength={20}
+            disabled={loading}
           />
         </FormGroup>
 
         <FormGroup>
           <Label>สถานะ</Label>
-          <Select value={status} onChange={(e) => setStatus(e.target.value as "ACTIVE" | "INACTIVE")}>
+          <Select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as "ACTIVE" | "INACTIVE")}
+            disabled={loading}
+          >
             <option value="ACTIVE">ปกติ</option>
             <option value="INACTIVE">ย้ายออก</option>
           </Select>
         </FormGroup>
 
         <div style={{ display: "flex", gap: "8px" }}>
-          <AddButton onClick={handleAddOrUpdate}>
-            {editingId !== null ? "💾 อัปเดตผู้เช่า" : "➕ เพิ่มผู้เช่า"}
+          <AddButton onClick={handleAddOrUpdate} disabled={loading}>
+            {loading ? "⏳ กำลังบันทึก..." : editingId !== null ? "💾 อัปเดตผู้เช่า" : "➕ เพิ่มผู้เช่า"}
           </AddButton>
           {(editingId !== null || name || room || phone) && (
-            <CancelButton onClick={handleCancel}>ยกเลิก</CancelButton>
+            <CancelButton onClick={handleCancel} disabled={loading}>ยกเลิก</CancelButton>
           )}
         </div>
       </FormCard>
