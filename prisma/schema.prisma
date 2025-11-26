@@ -12,11 +12,14 @@ datasource db {
 model User {
   id        String    @id @default(auto()) @map("_id") @db.ObjectId
   name      String
-  room      String
+  room      String    // ถ้า Admin ไม่มีห้อง อาจจะใส่เป็น "OFFICE" หรือแก้เป็น String? (Optional) ก็ได้
   phone     String?
   email     String?   @unique
   password  String?
   status    String    @default("ACTIVE") // ACTIVE, INACTIVE
+  
+  role      String    @default("user")   // <-- เพิ่มบรรทัดนี้! (user, admin)
+
   bills     Bill[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -25,17 +28,17 @@ model User {
   @@index([status])
 }
 
+// ... Model Bill และ Payment เหมือนเดิม ...
 model Bill {
   id        String    @id @default(auto()) @map("_id") @db.ObjectId
   userId    String    @db.ObjectId
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  month     String    // Format: YYYY-MM
+  month     String    
   rent      Float
   water     Float
   electric  Float
   total     Float
   status    String    @default("PENDING") 
-  // Status: PENDING (รอชำระ), PENDING_VERIFICATION (รอตรวจสอบ), PAID (ชำระแล้ว), CANCELLED (ยกเลิก)
   payments  Payment[]
   dueDate   DateTime?
   paidAt    DateTime?
@@ -52,16 +55,15 @@ model Payment {
   id            String    @id @default(auto()) @map("_id") @db.ObjectId
   billId        String    @db.ObjectId
   bill          Bill      @relation(fields: [billId], references: [id], onDelete: Cascade)
-  slipUrl       String    // URL ของสลิปใน Cloudinary
-  slipPublicId  String?   // Public ID ใน Cloudinary (สำหรับลบภาพ)
-  ocrText       String?   // ข้อความที่อ่านได้จาก OCR
-  note          String?   // หมายเหตุจากผู้ใช้
-  amount        Float?    // จำนวนเงินที่โอน (ถ้าอ่านได้จาก OCR)
+  slipUrl       String    
+  slipPublicId  String?   
+  ocrText       String?   
+  note          String?   
+  amount        Float?    
   status        String    @default("PENDING") 
-  // Status: PENDING (รอตรวจสอบ), APPROVED (อนุมัติ), REJECTED (ปฏิเสธ)
-  verifiedAt    DateTime? // เวลาที่ตรวจสอบ
-  verifiedBy    String?   // ผู้ตรวจสอบ (admin username/id)
-  rejectReason  String?   // เหตุผลที่ปฏิเสธ (ถ้า status = REJECTED)
+  verifiedAt    DateTime? 
+  verifiedBy    String?   
+  rejectReason  String?   
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -69,14 +71,15 @@ model Payment {
   @@index([status])
 }
 
-// ตัวอย่าง Admin User model (ถ้าต้องการ)
+// Model Admin อาจจะไม่จำเป็นแล้วถ้าเราใช้ User + role="admin" แทน
+// แต่ถ้าอยากเก็บไว้ก็ไม่เป็นไรครับ
 model Admin {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  username  String   @unique
-  email     String   @unique
-  password  String   // ควร hash ด้วย bcrypt
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  username  String    @unique
+  email     String    @unique
+  password  String   
   name      String
-  role      String   @default("ADMIN") // ADMIN, SUPER_ADMIN
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  role      String    @default("ADMIN") 
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
