@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "create-admin": "node scripts/create-admin.mjs"
   },
   "dependencies": {
     "@google-cloud/vision": "^5.3.4",
@@ -43,6 +44,8 @@
     "jest": "^30.2.0",
     "prisma": "^5.22.0",
     "ts-jest": "^29.4.5",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "^5"
   }
 }
