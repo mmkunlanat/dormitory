@@ -5,6 +5,7 @@ export async function GET() {
   try {
     const bills = await prisma.bill.findMany({
       where: { status: "PENDING" },
+      include: { user: true },
       orderBy: { month: "desc" },
     });
 

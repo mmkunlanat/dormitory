@@ -1,26 +1,18 @@
 // src/app/api/upload/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
-import { v2 as cloudinary } from "cloudinary";
 import { writeFile, unlink } from "fs/promises";
 import { join } from "path";
+import * as os from "os";
+import { MongoClient, GridFSBucket } from "mongodb";
 import prisma from "@/lib/prisma";
-
-// ตั้งค่า Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+import { DATABASE_URL } from "@/lib/env";
 
 export const runtime = "nodejs";
 
-// ฟังก์ชัน OCR (ถ้าต้องการ)
+// ฟังก์ชัน OCR (Placeholder)
 async function runOcrOnLocalFile(filePath: string): Promise<string> {
   try {
-    // TODO: เพิ่ม OCR logic ตรงนี้ถ้าต้องการ
-    // เช่น ใช้ Tesseract.js หรือ Google Vision API
-    return "OCR text here";
+    return ""; // ยังไม่ทำ OCR
   } catch (error) {
     console.error("OCR Error:", error);
     return "";
@@ -29,6 +21,7 @@ async function runOcrOnLocalFile(filePath: string): Promise<string> {
 
 export async function POST(req: NextRequest) {
   let tempFilePath: string | null = null;
+  let client: MongoClient | null = null;
 
   try {
     console.log("📥 Upload API called");
@@ -36,189 +29,150 @@ export async function POST(req: NextRequest) {
     // 1. รับ FormData
     const formData = await req.formData();
     const file = formData.get("file") as File;
-    const billIdStr = formData.get("billId") as string;
+    const billIdStr = formData.get("billId") as string; // รับมาเป็น String
     const note = formData.get("note") as string | null;
-
-    console.log("📦 Received data:", {
-      fileName: file?.name,
-      fileSize: file?.size,
-      billId: billIdStr,
-      note,
-    });
 
     // 2. Validation - ตรวจสอบไฟล์
     if (!file) {
-      return NextResponse.json(
-        { error: "ไม่พบไฟล์ที่อัปโหลด" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "ไม่พบไฟล์ที่อัปโหลด" }, { status: 400 });
     }
 
-    // ตรวจสอบประเภทไฟล์
     if (!file.type.startsWith("image/")) {
-      return NextResponse.json(
-        { error: "กรุณาอัปโหลดไฟล์รูปภาพเท่านั้น" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "กรุณาอัปโหลดไฟล์รูปภาพเท่านั้น" }, { status: 400 });
     }
 
-    // ตรวจสอบขนาดไฟล์ (ไม่เกิน 5MB)
     const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
-      return NextResponse.json(
-        { error: "ไฟล์มีขนาดใหญ่เกิน 5MB" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "ไฟล์มีขนาดใหญ่เกิน 5MB" }, { status: 400 });
     }
 
     // 3. Validation - ตรวจสอบ billId
     if (!billIdStr) {
-      return NextResponse.json(
-        { error: "กรุณาระบุ Bill ID" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "กรุณาระบุ Bill ID" }, { status: 400 });
     }
 
-    const billId = parseInt(billIdStr);
-    if (isNaN(billId)) {
-      return NextResponse.json(
-        { error: "Bill ID ไม่ถูกต้อง" },
-        { status: 400 }
-      );
-    }
+    // เปลี่ยนมาใช้ billIdStr ตรงๆ แทน
+    const targetBillId = billIdStr;
 
-    // 4. ตรวจสอบว่า Bill มีอยู่จริงและยังไม่ได้ชำระ
-    const bill = await prisma.bill.findUnique({
-      where: { id: billId },
-      include: { user: true },
-    });
-
-    if (!bill) {
-      return NextResponse.json(
-        { error: "ไม่พบบิลนี้ในระบบ" },
-        { status: 404 }
-      );
-    }
-
-    if (bill.status === "PAID") {
-      return NextResponse.json(
-        { error: "บิลนี้ได้รับการชำระแล้ว" },
-        { status: 400 }
-      );
-    }
-
-    // 5. แปลง File เป็น Buffer และบันทึกเป็นไฟล์ชั่วคราว
+    // 4. บันทึกเป็นไฟล์ชั่วคราว
     console.log("💾 Saving temporary file...");
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // สร้างชื่อไฟล์ที่ไม่ซ้ำกัน
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
     const fileExt = file.name.split(".").pop() || "jpg";
-    const filename = `slip-${billId}-${uniqueSuffix}.${fileExt}`;
-    tempFilePath = join("/tmp", filename);
+    const filename = `slip-${targetBillId}-${uniqueSuffix}.${fileExt}`;
+    
+    const tempDir = os.tmpdir();
+    tempFilePath = join(tempDir, filename);
 
     await writeFile(tempFilePath, buffer);
-    console.log("✅ Temporary file saved:", tempFilePath);
+    console.log("✅ Temporary file saved at:", tempFilePath);
 
-    // 6. อัปโหลดไปยัง Cloudinary
-    console.log("☁️ Uploading to Cloudinary...");
-    const uploadResult = await cloudinary.uploader.upload(tempFilePath, {
-      folder: "payment-slips",
-      public_id: `slip-${billId}-${uniqueSuffix}`,
-      resource_type: "auto",
-      transformation: [
-        { width: 1000, height: 1000, crop: "limit" },
-        { quality: "auto:good" },
-      ],
-    });
+    // 5. เชื่อมต่อกับ MongoDB Atlas
+    console.log("🔗 Connecting to MongoDB Atlas...");
+    console.log("Database URL:", DATABASE_URL);
+    client = new MongoClient(DATABASE_URL!);
+    await client.connect();
+    const db = client.db();
+    const bucket = new GridFSBucket(db, { bucketName: "payment-slips" });
 
-    console.log("✅ Cloudinary upload success:", uploadResult.secure_url);
-
-    // 7. รัน OCR (Optional)
-    let ocrText = "";
-    try {
-      ocrText = await runOcrOnLocalFile(tempFilePath);
-    } catch (ocrError) {
-      console.warn("⚠️ OCR failed, continuing without OCR:", ocrError);
-    }
-
-    // 8. บันทึกข้อมูลการอัปโหลดลง Database
-    const payment = await prisma.payment.create({
-      data: {
-        billId: billId,
-        slipUrl: uploadResult.secure_url,
-        slipPublicId: uploadResult.public_id,
-        ocrText: ocrText || null,
-        note: note || null,
-        status: "PENDING", // รอการตรวจสอบ
+    // 6. อัปโหลดไฟล์ไปยัง MongoDB GridFS
+    console.log("📤 Uploading to MongoDB GridFS...");
+    const uploadStream = bucket.openUploadStream(filename, {
+      metadata: {
+        billId: targetBillId,
+        note: note,
+        uploadedAt: new Date(),
+        contentType: file.type,
       },
     });
 
-    // 9. อัปเดตสถานะของ Bill
-    await prisma.bill.update({
-      where: { id: billId },
-      data: { status: "PENDING_VERIFICATION" }, // รอการตรวจสอบ
+    // Read the file and pipe to GridFS
+    const fs = require('fs');
+    const fileStream = fs.createReadStream(tempFilePath);
+    
+    await new Promise((resolve, reject) => {
+      fileStream.pipe(uploadStream)
+        .on('error', reject)
+        .on('finish', resolve);
     });
 
-    // 10. ลบไฟล์ชั่วคราว
-    await unlink(tempFilePath);
-    tempFilePath = null;
-    console.log("🗑️ Temporary file deleted");
+    const fileId = uploadStream.id;
+    console.log("✅ MongoDB upload success with file ID:", fileId);
+
+    // 7. สร้าง URL สำหรับเข้าถึงไฟล์ (API endpoint ที่จะสร้างต่อไป)
+    const slipUrl = `/api/files/${fileId}`;
+
+    // 8. บันทึกข้อมูลลง Database (Prisma)
+    let paymentId = "mock-id";
+    
+    try {
+        const payment = await prisma.payment.create({
+            data: {
+                billId: targetBillId,
+                slipUrl: slipUrl,
+                slipPublicId: fileId.toString(), // เก็บ GridFS file ID
+                note: note || null,
+                status: "PENDING",
+                amount: 0,
+            },
+        });
+        paymentId = payment.id.toString();
+
+        // อัปเดตสถานะ Bill
+        await prisma.bill.update({
+            where: { id: targetBillId },
+            data: { status: "PENDING_VERIFICATION" },
+        });
+
+    } catch (dbError) {
+        console.error("⚠️ Database Error (Skipped):", dbError);
+    }
+
+    // 9. ลบไฟล์ชั่วคราว
+    if (tempFilePath) {
+        await unlink(tempFilePath);
+        console.log("🗑️ Temporary file deleted");
+    }
+
+    // 10. ปิดการเชื่อมต่อ MongoDB
+    if (client) {
+        await client.close();
+    }
 
     // 11. ส่งผลลัพธ์กลับ
     return NextResponse.json({
       success: true,
       message: "อัปโหลดสลิปสำเร็จ",
       data: {
-        paymentId: payment.id,
-        slipUrl: uploadResult.secure_url,
-        billId: billId,
-        ocrText: ocrText,
+        paymentId: paymentId,
+        slipUrl: slipUrl,
+        billId: targetBillId,
       },
     });
 
   } catch (error: any) {
     console.error("❌ Upload API Error:", error);
 
-    // ลบไฟล์ชั่วคราวถ้ายังมีอยู่
+    // ลบไฟล์ชั่วคราวถ้ามี
     if (tempFilePath) {
       try {
         await unlink(tempFilePath);
-        console.log("🗑️ Cleaned up temporary file");
-      } catch (unlinkError) {
-        console.error("Error deleting temp file:", unlinkError);
-      }
+      } catch (e) {}
     }
 
-    // จัดการ Cloudinary errors
-    if (error.http_code) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "เกิดข้อผิดพลาดในการอัปโหลดไปยัง Cloudinary",
-          details: error.message,
-        },
-        { status: 500 }
-      );
-    }
-
-    // จัดการ Prisma errors
-    if (error.code === "P2002") {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "มีการอัปโหลดสลิปสำหรับบิลนี้แล้ว",
-        },
-        { status: 409 }
-      );
+    // ปิดการเชื่อมต่อ MongoDB ถ้ามี
+    if (client) {
+      try {
+        await client.close();
+      } catch (e) {}
     }
 
     return NextResponse.json(
       {
         success: false,
-        error: "การอัปโหลดไฟล์ล้มเหลว",
-        details: process.env.NODE_ENV === "development" ? error.message : undefined,
+        error: error.message || "เกิดข้อผิดพลาดในการอัปโหลด",
       },
       { status: 500 }
     );

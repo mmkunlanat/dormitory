@@ -6,15 +6,20 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "create-admin": "node scripts/create-admin.mjs"
   },
   "dependencies": {
     "@google-cloud/vision": "^5.3.4",
-    "@prisma/client": "^7.0.0",
+    "@prisma/client": "^5.22.0",
     "axios": "^1.13.2",
+    "bcryptjs": "^3.0.3",
     "cloudinary": "^2.8.0",
     "dayjs": "^1.11.19",
+    "dotenv": "^17.2.3",
     "formidable": "^3.5.4",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.21.0",
     "next": "16.0.3",
     "next-auth": "^4.24.13",
     "react": "19.2.0",
@@ -25,7 +30,9 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
+    "@types/bcryptjs": "^2.4.6",
     "@types/jest": "^30.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -35,8 +42,10 @@
     "eslint": "^9",
     "eslint-config-next": "16.0.3",
     "jest": "^30.2.0",
-    "prisma": "^7.0.0",
+    "prisma": "^5.22.0",
     "ts-jest": "^29.4.5",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "^5"
   }
 }

@@ -61,13 +61,33 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      // ตัวอย่างสมมติ register สำเร็จ (คุณสามารถต่อ backend จริงได้)
-      await new Promise(r => setTimeout(r, 800));
+      // เรียก API Register
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+          name: fullname,
+          room,
+        }),
+      });
 
-      // redirect ไปหน้า login
-      router.push("/login");
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "สมัครสมาชิกไม่สำเร็จ");
+      }
+
+      // Register สำเร็จ - บันทึก token และ user data
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("role", data.user.role || "user");
+
+      // redirect ไปหน้า dashboard
+      router.push("/dashboard");
     } catch (err: any) {
-      setError("สมัครสมาชิกไม่สำเร็จ");
+      setError(err.message || "สมัครสมาชิกไม่สำเร็จ");
     } finally {
       setLoading(false);
     }

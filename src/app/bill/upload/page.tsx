@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import styled from "styled-components";
 import { useRouter } from "next/navigation";
 
+// --- Styled Components ---
 const Container = styled.div`
   max-width: 600px;
   margin: 40px auto;
@@ -224,66 +225,48 @@ const SuccessMessage = styled.div`
   color: #065f46;
   border-radius: 12px;
   margin-top: 16px;
-  font-size: 14px;
-  text-align: center;
-  font-weight: 600;
 `;
 
-interface Bill {
-  id: number;
-  month: string;
-  total: number;
-}
-
+// --- Main Component ---
 export default function UploadSlipPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // States
+  const [billId, setBillId] = useState("");
+  const [bills, setBills] = useState<any[]>([]); 
+  const [loadingBills, setLoadingBills] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [note, setNote] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
-  // ข้อมูลเพิ่มเติม
-  const [billId, setBillId] = useState("");
-  const [note, setNote] = useState("");
+  // Effect: Fetch bills (ตัวอย่าง Mock Data - คุณอาจต้องเปลี่ยนเป็น fetch จริง)
+  useEffect(() => {
+    // จำลองการโหลดข้อมูลบิล
+    setLoadingBills(true);
+    // TODO: แทนที่ส่วนนี้ด้วย API Call จริงของคุณ
+    // fetch('/api/user/bills/pending').then(...)
+    setTimeout(() => {
+      setBills([
+        { id: "1", month: "2025-11", total: 4500 },
+        { id: "2", month: "2025-10", total: 4500 }
+      ]);
+      setLoadingBills(false);
+    }, 1000);
+  }, []);
 
-  const validateFile = (file: File): string | null => {
-    // ตรวจสอบประเภทไฟล์
-    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-    if (!allowedTypes.includes(file.type)) {
-      return "กรุณาอัปโหลดไฟล์รูปภาพเท่านั้น (JPG, PNG, WEBP)";
-    }
-
-    // ตรวจสอบขนาดไฟล์ (ไม่เกิน 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      return "ไฟล์มีขนาดใหญ่เกิน 5MB";
-    }
-
-    return null;
-  };
-
-  const handleFileSelect = (selectedFile: File) => {
-    setError("");
-    setSuccess(false);
-
-    const validationError = validateFile(selectedFile);
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
-    setFile(selectedFile);
-    setPreview(URL.createObjectURL(selectedFile));
-  };
-
+  // Handlers
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      handleFileSelect(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      setFile(selectedFile);
+      setPreview(URL.createObjectURL(selectedFile));
+      setError("");
     }
   };
 
@@ -300,16 +283,17 @@ export default function UploadSlipPage() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileSelect(e.dataTransfer.files[0]);
+      const droppedFile = e.dataTransfer.files[0];
+      setFile(droppedFile);
+      setPreview(URL.createObjectURL(droppedFile));
+      setError("");
     }
   };
 
   const handleRemoveFile = () => {
     setFile(null);
     setPreview(null);
-    setError("");
     setUploadProgress(0);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -332,7 +316,6 @@ export default function UploadSlipPage() {
     setUploadProgress(0);
 
     try {
-      // สร้าง FormData
       const formData = new FormData();
       formData.append("file", file);
       formData.append("billId", billId);
@@ -342,7 +325,6 @@ export default function UploadSlipPage() {
 
       console.log("🚀 Uploading slip...");
 
-      // Simulate progress (ในการใช้งานจริงควรใช้ XMLHttpRequest หรือ axios ที่รองรับ progress)
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
           if (prev >= 90) {
@@ -353,7 +335,6 @@ export default function UploadSlipPage() {
         });
       }, 200);
 
-      // อัปโหลดไฟล์
       const response = await fetch("/api/upload", {
         method: "POST",
         body: formData,
@@ -379,7 +360,6 @@ export default function UploadSlipPage() {
 
       console.log("✅ Upload success:", data);
 
-      // แสดง success message 2 วินาที แล้ว redirect
       setTimeout(() => {
         router.push("/user/bills");
       }, 2000);
@@ -399,6 +379,16 @@ export default function UploadSlipPage() {
     return (bytes / (1024 * 1024)).toFixed(2) + " MB";
   };
 
+  const formatMonth = (month: string): string => {
+    if (!month) return "";
+    const months = [
+      "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+      "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+    ];
+    const [year, monthNum] = month.split("-");
+    return `${months[parseInt(monthNum) - 1]} ${parseInt(year) + 543}`;
+  };
+
   return (
     <Container>
       <Header>
@@ -406,7 +396,6 @@ export default function UploadSlipPage() {
         <Subtitle>อัปโหลดหลักฐานการชำระเงินเพื่อยืนยันการชำระค่าเช่า</Subtitle>
       </Header>
 
-      {/* เลือกบิล */}
       <FormGroup>
         <Label>
           บิลที่ต้องการชำระ <RequiredMark>*</RequiredMark>
@@ -414,21 +403,24 @@ export default function UploadSlipPage() {
         <Select
           value={billId}
           onChange={(e) => setBillId(e.target.value)}
-          disabled={loading}
+          disabled={loading || loadingBills}
         >
-          <option value="">-- เลือกบิล --</option>
-          <option value="1">บิล เดือน มกราคม 2024 - 3,600 บาท</option>
-          <option value="2">บิล เดือน กุมภาพันธ์ 2024 - 3,500 บาท</option>
-          <option value="3">บิล เดือน มีนาคม 2024 - 3,700 บาท</option>
+          <option value="">
+            {loadingBills ? "กำลังโหลด..." : "-- เลือกบิล --"}
+          </option>
+          {bills.map((bill) => (
+            <option key={bill.id} value={bill.id}>
+              บิล เดือน {formatMonth(bill.month)} - {bill.total.toLocaleString()} บาท
+            </option>
+          ))}
         </Select>
       </FormGroup>
 
-      {/* Upload Area */}
       <FormGroup>
         <Label>
           อัปโหลดสลิป <RequiredMark>*</RequiredMark>
         </Label>
-        
+
         {!preview ? (
           <UploadArea
             $isDragging={isDragging}
@@ -463,7 +455,6 @@ export default function UploadSlipPage() {
         />
       </FormGroup>
 
-      {/* หมายเหตุ */}
       <FormGroup>
         <Label>หมายเหตุ (ถ้ามี)</Label>
         <Input
@@ -475,24 +466,20 @@ export default function UploadSlipPage() {
         />
       </FormGroup>
 
-      {/* Error Message */}
       {error && <ErrorText>❌ {error}</ErrorText>}
 
-      {/* Progress Bar */}
       {loading && uploadProgress > 0 && (
         <ProgressBar>
           <ProgressFill $progress={uploadProgress} />
         </ProgressBar>
       )}
 
-      {/* Success Message */}
       {success && (
         <SuccessMessage>
           ✅ อัปโหลดสลิปสำเร็จ! กำลังนำคุณไปยังหน้ารายการบิล...
         </SuccessMessage>
       )}
 
-      {/* Buttons */}
       <ButtonGroup>
         <Button
           $variant="secondary"
