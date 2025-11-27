@@ -5,7 +5,7 @@ import styled from "styled-components";
 import { useRouter } from "next/navigation";
 
 interface Bill {
-  id: number;
+  id: string;
   userName: string;
   room: string;
   month: string;
@@ -65,10 +65,10 @@ const StatusBadge = styled.span<{ status: string }>`
     status === "CONFIRMED"
       ? "#10b981"
       : status === "REJECTED"
-      ? "#ef4444"
-      : status === "UPLOADED"
-      ? "#f59e0b"
-      : "#3b82f6"};
+        ? "#ef4444"
+        : status === "UPLOADED"
+          ? "#f59e0b"
+          : "#3b82f6"};
 `;
 
 const ActionButton = styled.button`
@@ -108,7 +108,7 @@ export default function BillsPage() {
     fetchBills();
   }, []);
 
-  function handleUpdateStatus(id: number, status: Bill["status"]) {
+  function handleUpdateStatus(id: string, status: Bill["status"]) {
     setBills((prev) =>
       prev.map((b) => (b.id === id ? { ...b, status } : b))
     );
